@@ -1,0 +1,158 @@
+import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_background.dart';
+import '../widgets/gradient_button.dart';
+
+class AllSetScreen extends StatelessWidget {
+  final VoidCallback onContinue;
+  final int daysPerWeek;
+  final int deitiesSelected;
+
+  const AllSetScreen({
+    super.key,
+    required this.onContinue,
+    this.daysPerWeek = 1,
+    this.deitiesSelected = 1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: AppBackground(
+        child: SafeArea(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [
+                BoxShadow(color: Color(0x40000000), blurRadius: 50, offset: Offset(0, 25)),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Column(
+                children: [
+                  _buildHeader(),
+                  Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildSuccessIcon(),
+                            const SizedBox(height: 32),
+                            Text(
+                              "You're all set!",
+                              style: AppTextStyles.displayMedium,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Your spiritual journey begins now',
+                              style: AppTextStyles.bodyLarge.copyWith(fontSize: 18),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 32),
+                            _buildSummaryCard(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: GradientButton(
+                      label: 'Continue to Login',
+                      onPressed: onContinue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildProgressBar(1.0),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text('Skip', style: AppTextStyles.labelMedium.copyWith(color: Colors.transparent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressBar(double progress) {
+    return Container(
+      height: 6,
+      decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(100)),
+      child: FractionallySizedBox(
+        alignment: Alignment.centerLeft,
+        widthFactor: progress,
+        child: Container(
+          decoration: BoxDecoration(color: AppColors.textDark, borderRadius: BorderRadius.circular(100)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuccessIcon() {
+    return Container(
+      width: 96,
+      height: 96,
+      decoration: BoxDecoration(
+        gradient: AppGradients.allSetIcon,
+        shape: BoxShape.circle,
+        boxShadow: const [
+          BoxShadow(color: Color(0x1A000000), blurRadius: 15, offset: Offset(0, 10)),
+          BoxShadow(color: Color(0x0A000000), blurRadius: 6, offset: Offset(0, 4)),
+        ],
+      ),
+      child: const Icon(Icons.check, color: AppColors.white, size: 48),
+    );
+  }
+
+  Widget _buildSummaryCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.bgStart,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primaryBorder, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.notifications_active, color: AppColors.primary, size: 20),
+              const SizedBox(width: 12),
+              Text('Daily Reminder Set', style: AppTextStyles.labelMedium.copyWith(
+                fontSize: 16,
+                color: AppColors.textDark,
+                fontWeight: FontWeight.w600,
+              )),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text('Days: $daysPerWeek days/week', style: AppTextStyles.bodyLarge),
+          const SizedBox(height: 8),
+          Text('Deities: $deitiesSelected selected', style: AppTextStyles.bodyLarge),
+        ],
+      ),
+    );
+  }
+}
