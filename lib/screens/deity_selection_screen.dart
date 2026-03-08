@@ -36,7 +36,7 @@ class _DeitySelectionScreenState extends State<DeitySelectionScreen> {
     Deity(name: 'Saraswati', icon: Icons.music_note, bgColor: AppColors.saraswatiIconBg),
     Deity(name: 'Hanuman', icon: Icons.fitness_center, bgColor: AppColors.hanumanIconBg),
     Deity(name: 'Durga', icon: Icons.shield, bgColor: AppColors.durgaIconBg),
-    Deity(name: 'Krishna', icon: Icons.flute, bgColor: AppColors.krishnaIconBg),
+    Deity(name: 'Krishna', icon: Icons.music_note_outlined, bgColor: AppColors.krishnaIconBg),
   ];
 
   @override

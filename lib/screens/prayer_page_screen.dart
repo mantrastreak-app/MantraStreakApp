@@ -175,7 +175,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(_formatTime(_elapsedSeconds), style: AppTextStyles.labelSmall),
-              Text('-${_formatTime(remaining)}', style: AppTextStyles.labelSmall),
+              Text('-${_formatTime(_totalSeconds - _elapsedSeconds)}', style: AppTextStyles.labelSmall),
             ],
           ),
         ],
