@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models/app_state.dart';
+import 'services/supabase_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/deity_selection_screen.dart';
 import 'screens/reminder_time_screen.dart';
@@ -38,6 +39,18 @@ class _AppRouterState extends State<AppRouter> {
   AppRoute _currentRoute = AppRoute.splash;
   String? _selectedMood;
   Prayer? _selectedPrayer;
+
+  @override
+  void initState() {
+    super.initState();
+    // If a Supabase session already exists, load user data and skip to home.
+    if (SupabaseService.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await context.read<AppState>().loadUserData();
+        _navigate(AppRoute.home);
+      });
+    }
+  }
 
   void _navigate(AppRoute route) {
     setState(() => _currentRoute = route);
@@ -126,6 +139,9 @@ class _AppRouterState extends State<AppRouter> {
           mood: _selectedMood ?? 'Good',
           onStart: (prayer) {
             setState(() => _selectedPrayer = prayer);
+            // Store prayer details in AppState for Supabase logging
+            state.selectedPrayerDeity = prayer.deity;
+            state.selectedPrayerDuration = prayer.durationMinutes;
             _navigate(AppRoute.prayerPage);
           },
           onBack: () => _navigate(AppRoute.moodSelector),

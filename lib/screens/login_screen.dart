@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/app_state.dart';
+import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/app_logo.dart';
@@ -22,12 +26,53 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isSignUp = false;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your email and password.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      if (_isSignUp) {
+        await SupabaseService.signUpWithEmail(email, password);
+      } else {
+        await SupabaseService.signInWithEmail(email, password);
+      }
+      if (mounted) {
+        // Load user data from Supabase then navigate
+        await context.read<AppState>().loadUserData();
+        // Save onboarding settings for newly registered users
+        if (_isSignUp) {
+          await context.read<AppState>().saveProfile();
+        }
+        widget.onSignIn();
+      }
+    } on AuthException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } catch (e) {
+      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -52,7 +97,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Skip for now
                       Align(
                         alignment: Alignment.centerRight,
                         child: GestureDetector(
@@ -64,49 +108,67 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      // Logo + Title
-                      Center(child: const AppLogo(size: 64)),
+                      const Center(child: AppLogo(size: 64)),
                       const SizedBox(height: 20),
                       Text(
-                        'Welcome Back',
+                        _isSignUp ? 'Create Account' : 'Welcome Back',
                         style: AppTextStyles.headlineLarge,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Sign in to continue your spiritual journey',
+                        _isSignUp
+                            ? 'Start your spiritual journey today'
+                            : 'Sign in to continue your spiritual journey',
                         style: AppTextStyles.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 32),
-                      // Email field
                       _buildLabel('Email'),
                       const SizedBox(height: 6),
                       _buildEmailField(),
                       const SizedBox(height: 16),
-                      // Password field
                       _buildLabel('Password'),
                       const SizedBox(height: 6),
                       _buildPasswordField(),
-                      const SizedBox(height: 12),
-                      // Forgot password
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: GestureDetector(
-                          onTap: () {},
-                          child: Text(
-                            'Forgot password?',
-                            style: AppTextStyles.labelMedium.copyWith(
-                              color: AppColors.primaryDark,
+                      if (!_isSignUp) ...[
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () {},
+                            child: Text(
+                              'Forgot password?',
+                              style: AppTextStyles.labelMedium.copyWith(
+                                color: AppColors.primaryDark,
+                              ),
                             ),
                           ),
                         ),
+                      ],
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _errorMessage!,
+                            style: AppTextStyles.labelMedium.copyWith(color: const Color(0xFFDC2626)),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      GradientButton(
+                        label: _isLoading
+                            ? (_isSignUp ? 'Creating account…' : 'Signing in…')
+                            : (_isSignUp ? 'Create Account' : 'Sign In'),
+                        onPressed: _isLoading ? null : _submit,
                       ),
                       const SizedBox(height: 24),
-                      // Sign In button
-                      GradientButton(label: 'Sign In', onPressed: widget.onSignIn),
-                      const SizedBox(height: 24),
-                      // Divider
                       Row(
                         children: [
                           const Expanded(child: Divider(color: AppColors.border)),
@@ -118,7 +180,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      // Social buttons
                       _buildSocialButton(
                         label: 'Continue with Google',
                         icon: Icons.g_mobiledata,
@@ -133,15 +194,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         onTap: () {},
                       ),
                       const SizedBox(height: 32),
-                      // Sign up link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text("Don't have an account? ", style: AppTextStyles.bodyMedium),
+                          Text(
+                            _isSignUp ? 'Already have an account? ' : "Don't have an account? ",
+                            style: AppTextStyles.bodyMedium,
+                          ),
                           GestureDetector(
-                            onTap: () {},
+                            onTap: () => setState(() {
+                              _isSignUp = !_isSignUp;
+                              _errorMessage = null;
+                            }),
                             child: Text(
-                              'Sign Up',
+                              _isSignUp ? 'Sign In' : 'Sign Up',
                               style: AppTextStyles.bodyLarge.copyWith(
                                 color: AppColors.primaryDark,
                                 fontWeight: FontWeight.w700,
