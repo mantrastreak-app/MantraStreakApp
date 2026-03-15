@@ -68,6 +68,11 @@ class SupabaseService {
     );
   }
 
+  /// Update password for the currently signed-in user.
+  static Future<void> updatePassword(String newPassword) async {
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
   // ---------------------------------------------------------------------------
   // Profiles (user settings)
   // ---------------------------------------------------------------------------

@@ -61,7 +61,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       initialTime: _reminderTime,
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.primary,
+            primaryContainer: AppColors.primary,
+            onPrimaryContainer: Colors.white,
+            secondary: AppColors.primary,
+            secondaryContainer: AppColors.primarySurface,
+            onSecondaryContainer: AppColors.primary,
+          ),
         ),
         child: child!,
       ),
@@ -165,6 +172,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             icon: Icons.person_outline,
                             title: 'Account',
                             child: _buildEmailRow(email),
+                          ),
+                          const SizedBox(height: 24),
+                          // Change password
+                          _buildSection(
+                            icon: Icons.lock_outline,
+                            title: 'Password',
+                            child: _buildChangePasswordRow(),
                           ),
                           const SizedBox(height: 24),
                           // Reminder time
@@ -297,6 +311,159 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Icon(Icons.lock_outline, color: AppColors.textDisabled, size: 16),
         ],
       ),
+    );
+  }
+
+  Widget _buildChangePasswordRow() {
+    return GestureDetector(
+      onTap: _showChangePasswordSheet,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.lock_reset_outlined, color: AppColors.primary, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('Change Password',
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.w500,
+                  )),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textSubtle, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showChangePasswordSheet() async {
+    final newCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+    String? error;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                  24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Change Password',
+                      style: AppTextStyles.headlineLarge.copyWith(fontSize: 20)),
+                  const SizedBox(height: 20),
+                  // New password
+                  TextField(
+                    controller: newCtrl,
+                    obscureText: obscureNew,
+                    decoration: InputDecoration(
+                      labelText: 'New Password',
+                      prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                      suffixIcon: GestureDetector(
+                        onTap: () => setSheetState(() => obscureNew = !obscureNew),
+                        child: Icon(obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            color: AppColors.textSubtle),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // Confirm password
+                  TextField(
+                    controller: confirmCtrl,
+                    obscureText: obscureConfirm,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm New Password',
+                      prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                      suffixIcon: GestureDetector(
+                        onTap: () => setSheetState(() => obscureConfirm = !obscureConfirm),
+                        child: Icon(obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            color: AppColors.textSubtle),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 10),
+                    Text(error!, style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13)),
+                  ],
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                        elevation: 0,
+                      ),
+                      onPressed: () async {
+                        final np = newCtrl.text.trim();
+                        final cp = confirmCtrl.text.trim();
+                        if (np.isEmpty || cp.isEmpty) {
+                          setSheetState(() => error = 'Please fill in both fields.');
+                          return;
+                        }
+                        if (np.length < 6) {
+                          setSheetState(() => error = 'Password must be at least 6 characters.');
+                          return;
+                        }
+                        if (np != cp) {
+                          setSheetState(() => error = 'Passwords do not match.');
+                          return;
+                        }
+                        try {
+                          await SupabaseService.updatePassword(np);
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Password updated successfully!'),
+                                backgroundColor: Color(0xFF16A34A),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          setSheetState(() => error = e.toString());
+                        }
+                      },
+                      child: const Text('Update Password',
+                          style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

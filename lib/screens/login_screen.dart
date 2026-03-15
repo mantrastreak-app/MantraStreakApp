@@ -10,15 +10,19 @@ import '../widgets/app_logo.dart';
 import '../widgets/gradient_button.dart';
 
 class LoginScreen extends StatefulWidget {
-  /// Called after any successful authentication.
+  /// Called after a successful sign-in (returning user → go to home).
   final VoidCallback onSignIn;
 
-  /// When true the screen opens in Create Account mode (for onboarding).
+  /// Called after a successful sign-up (new user → go to onboarding).
+  final VoidCallback onSignUp;
+
+  /// When true the screen opens in Create Account mode.
   final bool startInSignUpMode;
 
   const LoginScreen({
     super.key,
     required this.onSignIn,
+    required this.onSignUp,
     this.startInSignUpMode = false,
   });
 
@@ -61,8 +65,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     final appState = context.read<AppState>();
     await appState.loadUserData();
-    if (_isSignUp) await appState.saveProfile();
-    if (mounted) widget.onSignIn();
+    if (_isSignUp) {
+      if (mounted) widget.onSignUp();
+    } else {
+      if (mounted) widget.onSignIn();
+    }
   }
 
   Future<void> _submit() async {
@@ -206,12 +213,15 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
                       const SizedBox(height: 8),
                       const Center(child: AppLogo(size: 64)),
                       const SizedBox(height: 20),
@@ -325,6 +335,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
+              ),
+            ),
+                ],
               ),
             ),
           ),

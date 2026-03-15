@@ -105,7 +105,6 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
               borderRadius: BorderRadius.circular(24),
               child: Column(
                 children: [
-                  _buildTopBar(),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
@@ -114,9 +113,13 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
                         children: [
                           GestureDetector(
                             onTap: widget.onBack,
-                            child: Text(
-                              '← Back',
-                              style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSubtle),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.arrow_back_ios_rounded, size: 16, color: AppColors.textSubtle),
+                                const SizedBox(width: 4),
+                                Text('Back', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSubtle)),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -165,18 +168,6 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
     );
   }
 
-  Widget _buildTopBar() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(24, 12, 24, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('4:09', style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: AppColors.textMedium)),
-          Icon(Icons.battery_full, color: AppColors.textMedium, size: 18),
-        ],
-      ),
-    );
-  }
 }
 
 class _PrayerCard extends StatelessWidget {

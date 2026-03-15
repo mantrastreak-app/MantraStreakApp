@@ -45,6 +45,7 @@ class _AppRouterState extends State<AppRouter> {
   AppRoute _currentRoute = AppRoute.splash;
   String? _selectedMood;
   Prayer? _selectedPrayer;
+  bool _signInMode = false; // true after logout → show sign-in, not sign-up
 
   @override
   void initState() {
@@ -90,8 +91,15 @@ class _AppRouterState extends State<AppRouter> {
       case AppRoute.login:
         return LoginScreen(
           key: const ValueKey(AppRoute.login),
-          startInSignUpMode: true,
-          onSignIn: () => _navigate(AppRoute.deitySelection),
+          startInSignUpMode: !_signInMode,
+          onSignIn: () {
+            _signInMode = false;
+            _navigate(AppRoute.home);
+          },
+          onSignUp: () {
+            _signInMode = false;
+            _navigate(AppRoute.deitySelection);
+          },
         );
 
       case AppRoute.deitySelection:
@@ -137,7 +145,10 @@ class _AppRouterState extends State<AppRouter> {
         return ProfileScreen(
           key: const ValueKey(AppRoute.profile),
           onClose: () => _navigate(AppRoute.home),
-          onLogOut: () => _navigate(AppRoute.splash),
+          onLogOut: () => setState(() {
+            _signInMode = true;
+            _currentRoute = AppRoute.login;
+          }),
         );
 
       case AppRoute.moodSelector:

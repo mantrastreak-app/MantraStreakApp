@@ -114,7 +114,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
 
   Widget _buildPrayerHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

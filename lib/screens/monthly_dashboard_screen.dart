@@ -67,19 +67,25 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildTopBar(),
-                    _buildHeader(),
-                    _buildStatsRow(),
-                    _buildCalendarControls(monthName, year, completionCount, completionPercent),
-                    _buildCalendarGrid(),
-                    _buildLegend(),
-                    const SizedBox(height: 24),
-                  ],
-                ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTopBar(),
+                          _buildHeader(),
+                          _buildStatsRow(),
+                          _buildCalendarControls(monthName, year, completionCount, completionPercent),
+                          _buildCalendarGrid(),
+                          _buildLegend(),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

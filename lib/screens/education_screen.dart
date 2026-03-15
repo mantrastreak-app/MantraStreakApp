@@ -14,43 +14,61 @@ class EducationScreen extends StatelessWidget {
     return Scaffold(
       body: AppBackground(
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Spacer(flex: 2),
-                // App logo — same as splash screen
-                const AppLogo(size: 96),
-                const SizedBox(height: 40),
-                // Quote text
-                Text(
-                  'When you chant, you train your mind to choose peace over chaos.',
-                  style: AppTextStyles.displayMedium.copyWith(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w600,
-                    height: 1.45,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 28),
-                // Subtitle
-                Text(
-                  'Your daily mantra practice is more than repetition —\nit\'s a path to inner stillness.',
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textMedium,
-                    height: 1.6,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const Spacer(flex: 3),
-                GradientButton(
-                  label: 'I\'m Ready',
-                  onPressed: onContinue,
-                  showArrow: true,
-                ),
-                const SizedBox(height: 32),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [
+                BoxShadow(color: Color(0x40000000), blurRadius: 50, offset: Offset(0, 25)),
               ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Spacer(flex: 2),
+                          const AppLogo(size: 96),
+                          const SizedBox(height: 40),
+                          Text(
+                            'When you chant, you train your mind to choose peace over chaos.',
+                            style: AppTextStyles.displayMedium.copyWith(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w600,
+                              height: 1.45,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 28),
+                          Text(
+                            'Your daily mantra practice is more than repetition —\nit\'s a path to inner stillness.',
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              color: AppColors.textMedium,
+                              height: 1.6,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const Spacer(flex: 3),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: GradientButton(
+                      label: 'I\'m Ready',
+                      onPressed: onContinue,
+                      showArrow: true,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
