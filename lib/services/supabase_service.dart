@@ -44,6 +44,30 @@ class SupabaseService {
     await _client.auth.signOut();
   }
 
+  /// Sign in / sign up with Google OAuth (opens browser).
+  static Future<void> signInWithGoogle() async {
+    await _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'com.mantrastreak.app://auth-callback',
+    );
+  }
+
+  /// Sign in / sign up with Facebook OAuth (opens browser).
+  static Future<void> signInWithFacebook() async {
+    await _client.auth.signInWithOAuth(
+      OAuthProvider.facebook,
+      redirectTo: 'com.mantrastreak.app://auth-callback',
+    );
+  }
+
+  /// Send a password reset email.
+  static Future<void> sendPasswordResetEmail(String email) async {
+    await _client.auth.resetPasswordForEmail(
+      email,
+      redirectTo: 'com.mantrastreak.app://reset-password',
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Profiles (user settings)
   // ---------------------------------------------------------------------------

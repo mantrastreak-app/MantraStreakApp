@@ -5,8 +5,9 @@ import '../widgets/gradient_button.dart';
 
 class MoodSelectorScreen extends StatefulWidget {
   final void Function(String mood) onContinue;
+  final VoidCallback onBack;
 
-  const MoodSelectorScreen({super.key, required this.onContinue});
+  const MoodSelectorScreen({super.key, required this.onContinue, required this.onBack});
 
   @override
   State<MoodSelectorScreen> createState() => _MoodSelectorScreenState();
@@ -21,7 +22,6 @@ class _MoodSelectorScreenState extends State<MoodSelectorScreen> {
     _Mood(emoji: '😐', label: 'Neutral'),
     _Mood(emoji: '😔', label: 'Bad'),
     _Mood(emoji: '😢', label: 'Terrible'),
-    _Mood(emoji: '🤔', label: 'Other'),
   ];
 
   @override
@@ -31,9 +31,26 @@ class _MoodSelectorScreenState extends State<MoodSelectorScreen> {
         child: SafeArea(
           child: Column(
             children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: GestureDetector(
+                    onTap: widget.onBack,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.arrow_back_ios_rounded, size: 16, color: AppColors.textSubtle),
+                        const SizedBox(width: 4),
+                        Text('Back', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSubtle)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [

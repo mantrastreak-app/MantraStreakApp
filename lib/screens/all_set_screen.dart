@@ -33,7 +33,6 @@ class AllSetScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
               child: Column(
                 children: [
-                  _buildHeader(),
                   Expanded(
                     child: Center(
                       child: Padding(
@@ -64,45 +63,15 @@ class AllSetScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                     child: GradientButton(
-                      label: 'Continue to Login',
+                      label: 'Start My Journey',
                       onPressed: onContinue,
+                      showArrow: true,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildProgressBar(1.0),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text('Skip', style: AppTextStyles.labelMedium.copyWith(color: Colors.transparent)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressBar(double progress) {
-    return Container(
-      height: 6,
-      decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(100)),
-      child: FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: progress,
-        child: Container(
-          decoration: BoxDecoration(color: AppColors.textDark, borderRadius: BorderRadius.circular(100)),
         ),
       ),
     );

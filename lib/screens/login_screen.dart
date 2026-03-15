@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,13 +10,16 @@ import '../widgets/app_logo.dart';
 import '../widgets/gradient_button.dart';
 
 class LoginScreen extends StatefulWidget {
+  /// Called after any successful authentication.
   final VoidCallback onSignIn;
-  final VoidCallback onSkip;
+
+  /// When true the screen opens in Create Account mode (for onboarding).
+  final bool startInSignUpMode;
 
   const LoginScreen({
     super.key,
     required this.onSignIn,
-    required this.onSkip,
+    this.startInSignUpMode = false,
   });
 
   @override
@@ -26,15 +30,39 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isSignUp = false;
+  late bool _isSignUp;
   bool _isLoading = false;
   String? _errorMessage;
 
+  StreamSubscription<AuthState>? _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSignUp = widget.startInSignUpMode;
+
+    // Listen for OAuth sign-in completing in the browser and returning.
+    _authSub = SupabaseService.authStateChanges.listen((authState) {
+      if (authState.event == AuthChangeEvent.signedIn && mounted) {
+        _onAuthSuccess();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _authSub?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _onAuthSuccess() async {
+    if (!mounted) return;
+    final appState = context.read<AppState>();
+    await appState.loadUserData();
+    if (_isSignUp) await appState.saveProfile();
+    if (mounted) widget.onSignIn();
   }
 
   Future<void> _submit() async {
@@ -57,21 +85,108 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         await SupabaseService.signInWithEmail(email, password);
       }
-      if (mounted) {
-        // Load user data from Supabase then navigate
-        await context.read<AppState>().loadUserData();
-        // Save onboarding settings for newly registered users
-        if (_isSignUp) {
-          await context.read<AppState>().saveProfile();
-        }
-        widget.onSignIn();
-      }
+      if (mounted) await _onAuthSuccess();
     } on AuthException catch (e) {
       setState(() => _errorMessage = e.message);
-    } catch (e) {
+    } catch (_) {
       setState(() => _errorMessage = 'Something went wrong. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() { _isLoading = true; _errorMessage = null; });
+    try {
+      await SupabaseService.signInWithGoogle();
+      // Navigation is handled by the auth state listener above.
+    } on AuthException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } catch (_) {
+      setState(() => _errorMessage = 'Could not open Google sign-in. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithFacebook() async {
+    setState(() { _isLoading = true; _errorMessage = null; });
+    try {
+      await SupabaseService.signInWithFacebook();
+      // Navigation is handled by the auth state listener above.
+    } on AuthException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } catch (_) {
+      setState(() => _errorMessage = 'Could not open Facebook sign-in. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _showForgotPassword() async {
+    final emailController = TextEditingController(text: _emailController.text.trim());
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Reset Password', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter your email and we\'ll send you a link to reset your password.',
+              style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                hintText: 'you@example.com',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(fontFamily: 'Inter')),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Send Link', style: TextStyle(fontFamily: 'Inter', color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      final email = emailController.text.trim();
+      if (email.isEmpty) return;
+      try {
+        await SupabaseService.sendPasswordResetEmail(email);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Password reset email sent! Check your inbox.'),
+              backgroundColor: Color(0xFF16A34A),
+            ),
+          );
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to send reset email. Please try again.')),
+          );
+        }
+      }
     }
   }
 
@@ -97,17 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: GestureDetector(
-                          onTap: widget.onSkip,
-                          child: Text(
-                            'Skip for now',
-                            style: AppTextStyles.labelMedium.copyWith(color: AppColors.textLight),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 8),
                       const Center(child: AppLogo(size: 64)),
                       const SizedBox(height: 20),
                       Text(
@@ -136,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
-                            onTap: () {},
+                            onTap: _showForgotPassword,
                             child: Text(
                               'Forgot password?',
                               style: AppTextStyles.labelMedium.copyWith(
@@ -181,17 +286,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 24),
                       _buildSocialButton(
-                        label: 'Continue with Google',
+                        label: _isSignUp ? 'Sign up with Google' : 'Continue with Google',
                         icon: Icons.g_mobiledata,
                         iconColor: Colors.red,
-                        onTap: () {},
+                        onTap: _isLoading ? null : _signInWithGoogle,
                       ),
                       const SizedBox(height: 12),
                       _buildSocialButton(
-                        label: 'Continue with Facebook',
+                        label: _isSignUp ? 'Sign up with Facebook' : 'Continue with Facebook',
                         icon: Icons.facebook,
                         iconColor: Colors.blue,
-                        onTap: () {},
+                        onTap: _isLoading ? null : _signInWithFacebook,
                       ),
                       const SizedBox(height: 32),
                       Row(
@@ -229,10 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLabel(String label) {
-    return Text(
-      label,
-      style: AppTextStyles.labelMedium.copyWith(color: AppColors.textMedium),
-    );
+    return Text(label, style: AppTextStyles.labelMedium.copyWith(color: AppColors.textMedium));
   }
 
   Widget _buildEmailField() {
@@ -251,20 +353,12 @@ class _LoginScreenState extends State<LoginScreen> {
             child: TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 16,
-                color: AppColors.textDark,
-              ),
-              decoration: InputDecoration(
+              style: const TextStyle(fontFamily: 'Inter', fontSize: 16, color: AppColors.textDark),
+              decoration: const InputDecoration(
                 hintText: 'you@example.com',
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                hintStyle: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 16,
-                  color: AppColors.textDisabled,
-                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                hintStyle: TextStyle(fontFamily: 'Inter', fontSize: 16, color: AppColors.textDisabled),
               ),
             ),
           ),
@@ -289,20 +383,12 @@ class _LoginScreenState extends State<LoginScreen> {
             child: TextField(
               controller: _passwordController,
               obscureText: _obscurePassword,
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 16,
-                color: AppColors.textDark,
-              ),
-              decoration: InputDecoration(
+              style: const TextStyle(fontFamily: 'Inter', fontSize: 16, color: AppColors.textDark),
+              decoration: const InputDecoration(
                 hintText: '••••••••',
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                hintStyle: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 16,
-                  color: AppColors.textDisabled,
-                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                hintStyle: TextStyle(fontFamily: 'Inter', fontSize: 16, color: AppColors.textDisabled),
               ),
             ),
           ),
@@ -323,7 +409,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required String label,
     required IconData icon,
     required Color iconColor,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -332,13 +418,19 @@ class _LoginScreenState extends State<LoginScreen> {
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.border, width: 1.5),
           borderRadius: BorderRadius.circular(100),
+          color: onTap == null ? AppColors.surface : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: iconColor, size: 22),
+            Icon(icon, color: onTap == null ? AppColors.textDisabled : iconColor, size: 22),
             const SizedBox(width: 12),
-            Text(label, style: AppTextStyles.labelMedium.copyWith(color: AppColors.textMedium)),
+            Text(
+              label,
+              style: AppTextStyles.labelMedium.copyWith(
+                color: onTap == null ? AppColors.textDisabled : AppColors.textMedium,
+              ),
+            ),
           ],
         ),
       ),

@@ -121,7 +121,7 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
                           ),
                           const SizedBox(height: 20),
                           const Text(
-                            "We're here to support you 🤲",
+                            "We're here to support you",
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 30,
@@ -246,18 +246,8 @@ class _PrayerCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _Tag(
-                          text: '${prayer.durationMinutes} min',
-                          dotColor: AppColors.primaryLight,
-                        ),
-                        if (prayer.deity.isNotEmpty) ...[
-                          const SizedBox(width: 12),
-                          _Tag(text: prayer.deity, dotColor: const Color(0xFF51A2FF)),
-                        ],
-                      ],
-                    ),
+                    if (prayer.deity.isNotEmpty)
+                      _Tag(text: prayer.deity, dotColor: const Color(0xFF51A2FF)),
                     const SizedBox(height: 8),
                     Text(prayer.description, style: AppTextStyles.labelSmall),
                   ],
