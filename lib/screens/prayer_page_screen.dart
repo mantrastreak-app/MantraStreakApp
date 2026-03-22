@@ -293,8 +293,9 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
       ),
       child: Column(
         children: [
-          // ── Audio player (shown only when audio URL exists) ────────────
-          if (widget.prayer.audioUrl != null && widget.prayer.audioUrl!.isNotEmpty)
+          // ── Audio player (hidden if no URL or failed to load) ──────────
+          if ((widget.prayer.audioUrl != null && widget.prayer.audioUrl!.isNotEmpty) &&
+              (_audioLoading || _audioReady))
             _buildAudioSection(),
 
           // ── Session timer ─────────────────────────────────────────────
@@ -393,8 +394,6 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                 )
-              else if (_audioError != null)
-                const Icon(Icons.error_outline, size: 18, color: AppColors.textLight)
               else
                 GestureDetector(
                   onTap: _toggleAudio,
@@ -414,10 +413,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
                 ),
             ],
           ),
-          if (_audioError != null) ...[
-            const SizedBox(height: 6),
-            Text(_audioError!, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textLight)),
-          ] else if (_audioReady) ...[
+          if (_audioReady) ...[
             const SizedBox(height: 4),
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
