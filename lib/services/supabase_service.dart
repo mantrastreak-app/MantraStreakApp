@@ -190,6 +190,24 @@ class SupabaseService {
   }
 
   // ---------------------------------------------------------------------------
+  // Audio
+  // ---------------------------------------------------------------------------
+
+  /// Resolve an audio_url value to a playable URL.
+  ///
+  /// If [rawUrl] already starts with "http" it is returned as-is (public URL).
+  /// Otherwise it is treated as a Supabase Storage path (e.g. "audio/file.mp3")
+  /// and a 1-hour signed URL is generated.
+  static Future<String> resolveAudioUrl(String rawUrl,
+      {String bucket = 'mantras'}) async {
+    if (rawUrl.startsWith('http')) return rawUrl;
+    final response = await _client.storage
+        .from(bucket)
+        .createSignedUrl(rawUrl, 3600);
+    return response;
+  }
+
+  // ---------------------------------------------------------------------------
   // Prayer Sessions
   // ---------------------------------------------------------------------------
 

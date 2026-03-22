@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
+import '../services/supabase_service.dart';
 import 'prayer_selection_screen.dart';
 
 class PrayerPageScreen extends StatefulWidget {
@@ -71,11 +72,12 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
     }));
 
     try {
-      await player.setUrl(url);
+      final resolvedUrl = await SupabaseService.resolveAudioUrl(url);
+      await player.setUrl(resolvedUrl);
       await player.setLoopMode(LoopMode.one);
       if (mounted) setState(() { _audioReady = true; _audioLoading = false; });
     } catch (e) {
-      if (mounted) setState(() { _audioError = 'Could not load audio'; _audioLoading = false; });
+      if (mounted) setState(() { _audioError = 'Could not load audio: $e'; _audioLoading = false; });
     }
   }
 
