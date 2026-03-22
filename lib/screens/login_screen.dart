@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,8 +12,8 @@ class LoginScreen extends StatefulWidget {
   /// Called after a successful sign-in (returning user → go to home).
   final VoidCallback onSignIn;
 
-  /// Called after a successful sign-up (new user → go to onboarding).
-  final VoidCallback onSignUp;
+  /// Called with the email after sign-up, before OTP verification.
+  final void Function(String email) onPendingOtp;
 
   /// When true the screen opens in Create Account mode.
   final bool startInSignUpMode;
@@ -22,7 +21,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
     required this.onSignIn,
-    required this.onSignUp,
+    required this.onPendingOtp,
     this.startInSignUpMode = false,
   });
 
@@ -38,38 +37,23 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  StreamSubscription<AuthState>? _authSub;
-
   @override
   void initState() {
     super.initState();
     _isSignUp = widget.startInSignUpMode;
-
-    // Listen for OAuth sign-in completing in the browser and returning.
-    _authSub = SupabaseService.authStateChanges.listen((authState) {
-      if (authState.event == AuthChangeEvent.signedIn && mounted) {
-        _onAuthSuccess();
-      }
-    });
   }
 
   @override
   void dispose() {
-    _authSub?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _onAuthSuccess() async {
+  Future<void> _onSignInSuccess() async {
     if (!mounted) return;
-    final appState = context.read<AppState>();
-    await appState.loadUserData();
-    if (_isSignUp) {
-      if (mounted) widget.onSignUp();
-    } else {
-      if (mounted) widget.onSignIn();
-    }
+    await context.read<AppState>().loadUserData();
+    if (mounted) widget.onSignIn();
   }
 
   Future<void> _submit() async {
@@ -89,42 +73,15 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       if (_isSignUp) {
         await SupabaseService.signUpWithEmail(email, password);
+        if (mounted) widget.onPendingOtp(email);
       } else {
         await SupabaseService.signInWithEmail(email, password);
+        if (mounted) await _onSignInSuccess();
       }
-      if (mounted) await _onAuthSuccess();
     } on AuthException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
       setState(() => _errorMessage = 'Something went wrong. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    setState(() { _isLoading = true; _errorMessage = null; });
-    try {
-      await SupabaseService.signInWithGoogle();
-      // Navigation is handled by the auth state listener above.
-    } on AuthException catch (e) {
-      setState(() => _errorMessage = e.message);
-    } catch (_) {
-      setState(() => _errorMessage = 'Could not open Google sign-in. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _signInWithFacebook() async {
-    setState(() { _isLoading = true; _errorMessage = null; });
-    try {
-      await SupabaseService.signInWithFacebook();
-      // Navigation is handled by the auth state listener above.
-    } on AuthException catch (e) {
-      setState(() => _errorMessage = e.message);
-    } catch (_) {
-      setState(() => _errorMessage = 'Could not open Facebook sign-in. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -222,121 +179,104 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                      const SizedBox(height: 8),
-                      const Center(child: AppLogo(size: 64)),
-                      const SizedBox(height: 20),
-                      Text(
-                        _isSignUp ? 'Create Account' : 'Welcome Back',
-                        style: AppTextStyles.headlineLarge,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _isSignUp
-                            ? 'Start your spiritual journey today'
-                            : 'Sign in to continue your spiritual journey',
-                        style: AppTextStyles.bodyMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 32),
-                      _buildLabel('Email'),
-                      const SizedBox(height: 6),
-                      _buildEmailField(),
-                      const SizedBox(height: 16),
-                      _buildLabel('Password'),
-                      const SizedBox(height: 6),
-                      _buildPasswordField(),
-                      if (!_isSignUp) ...[
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: GestureDetector(
-                            onTap: _showForgotPassword,
-                            child: Text(
-                              'Forgot password?',
-                              style: AppTextStyles.labelMedium.copyWith(
-                                color: AppColors.primaryDark,
-                              ),
+                            const SizedBox(height: 8),
+                            const Center(child: AppLogo(size: 64)),
+                            const SizedBox(height: 20),
+                            Text(
+                              _isSignUp ? 'Create Account' : 'Welcome Back',
+                              style: AppTextStyles.headlineLarge,
+                              textAlign: TextAlign.center,
                             ),
-                          ),
-                        ),
-                      ],
-                      if (_errorMessage != null) ...[
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEE2E2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _errorMessage!,
-                            style: AppTextStyles.labelMedium.copyWith(color: const Color(0xFFDC2626)),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      GradientButton(
-                        label: _isLoading
-                            ? (_isSignUp ? 'Creating account…' : 'Signing in…')
-                            : (_isSignUp ? 'Create Account' : 'Sign In'),
-                        onPressed: _isLoading ? null : _submit,
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          const Expanded(child: Divider(color: AppColors.border)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text('or', style: AppTextStyles.bodyMedium),
-                          ),
-                          const Expanded(child: Divider(color: AppColors.border)),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _buildSocialButton(
-                        label: _isSignUp ? 'Sign up with Google' : 'Continue with Google',
-                        icon: Icons.g_mobiledata,
-                        iconColor: Colors.red,
-                        onTap: _isLoading ? null : _signInWithGoogle,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildSocialButton(
-                        label: _isSignUp ? 'Sign up with Facebook' : 'Continue with Facebook',
-                        icon: Icons.facebook,
-                        iconColor: Colors.blue,
-                        onTap: _isLoading ? null : _signInWithFacebook,
-                      ),
-                      const SizedBox(height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _isSignUp ? 'Already have an account? ' : "Don't have an account? ",
-                            style: AppTextStyles.bodyMedium,
-                          ),
-                          GestureDetector(
-                            onTap: () => setState(() {
-                              _isSignUp = !_isSignUp;
-                              _errorMessage = null;
-                            }),
-                            child: Text(
-                              _isSignUp ? 'Sign In' : 'Sign Up',
-                              style: AppTextStyles.bodyLarge.copyWith(
-                                color: AppColors.primaryDark,
-                                fontWeight: FontWeight.w700,
-                              ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _isSignUp
+                                  ? 'Start your spiritual journey today'
+                                  : 'Sign in to continue your spiritual journey',
+                              style: AppTextStyles.bodyMedium,
+                              textAlign: TextAlign.center,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 32),
+                            _buildLabel('Email'),
+                            const SizedBox(height: 6),
+                            _buildEmailField(),
+                            const SizedBox(height: 16),
+                            _buildLabel('Password'),
+                            const SizedBox(height: 6),
+                            _buildPasswordField(),
+                            if (!_isSignUp) ...[
+                              const SizedBox(height: 12),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: GestureDetector(
+                                  onTap: _showForgotPassword,
+                                  child: Text(
+                                    'Forgot password?',
+                                    style: AppTextStyles.labelMedium.copyWith(
+                                      color: AppColors.primaryDark,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (_isSignUp) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'You\'ll verify your email with a one-time code after signing up.',
+                                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSubtle),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                            if (_errorMessage != null) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEE2E2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  _errorMessage!,
+                                  style: AppTextStyles.labelMedium.copyWith(color: const Color(0xFFDC2626)),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 24),
+                            GradientButton(
+                              label: _isLoading
+                                  ? (_isSignUp ? 'Creating account…' : 'Signing in…')
+                                  : (_isSignUp ? 'Create Account' : 'Sign In'),
+                              onPressed: _isLoading ? null : _submit,
+                            ),
+                            const SizedBox(height: 32),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _isSignUp ? 'Already have an account? ' : "Don't have an account? ",
+                                  style: AppTextStyles.bodyMedium,
+                                ),
+                                GestureDetector(
+                                  onTap: () => setState(() {
+                                    _isSignUp = !_isSignUp;
+                                    _errorMessage = null;
+                                  }),
+                                  child: Text(
+                                    _isSignUp ? 'Sign In' : 'Sign Up',
+                                    style: AppTextStyles.bodyLarge.copyWith(
+                                      color: AppColors.primaryDark,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ),
                 ],
               ),
             ),
@@ -414,38 +354,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSocialButton({
-    required String label,
-    required IconData icon,
-    required Color iconColor,
-    required VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.border, width: 1.5),
-          borderRadius: BorderRadius.circular(100),
-          color: onTap == null ? AppColors.surface : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: onTap == null ? AppColors.textDisabled : iconColor, size: 22),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: onTap == null ? AppColors.textDisabled : AppColors.textMedium,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

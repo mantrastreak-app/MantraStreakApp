@@ -15,13 +15,15 @@ import 'screens/mood_selector_screen.dart';
 import 'screens/prayer_selection_screen.dart';
 import 'screens/prayer_page_screen.dart';
 import 'screens/monthly_dashboard_screen.dart';
+import 'screens/otp_verification_screen.dart';
 
-// Onboarding: splash → education → login → deitySelection → enableNotifications → reminder → allSet → home
+// Onboarding: splash → education → login → otpVerification → deitySelection → enableNotifications → reminder → allSet → home
 // Main app:   home ↔ profile, moodSelector → prayerSelection → prayerPage, home ↔ monthlyDashboard
 enum AppRoute {
   splash,
   education,
   login,
+  otpVerification,
   deitySelection,
   enableNotifications,
   reminder,
@@ -46,6 +48,7 @@ class _AppRouterState extends State<AppRouter> {
   String? _selectedMood;
   Prayer? _selectedPrayer;
   bool _signInMode = false; // true after logout → show sign-in, not sign-up
+  String? _pendingOtpEmail;
 
   @override
   void initState() {
@@ -96,10 +99,21 @@ class _AppRouterState extends State<AppRouter> {
             _signInMode = false;
             _navigate(AppRoute.home);
           },
-          onSignUp: () {
-            _signInMode = false;
-            _navigate(AppRoute.deitySelection);
+          onPendingOtp: (email) {
+            setState(() => _pendingOtpEmail = email);
+            _navigate(AppRoute.otpVerification);
           },
+        );
+
+      case AppRoute.otpVerification:
+        return OtpVerificationScreen(
+          key: const ValueKey(AppRoute.otpVerification),
+          email: _pendingOtpEmail!,
+          onVerified: () async {
+            await context.read<AppState>().loadUserData();
+            if (mounted) _navigate(AppRoute.deitySelection);
+          },
+          onBack: () => _navigate(AppRoute.login),
         );
 
       case AppRoute.deitySelection:

@@ -44,19 +44,21 @@ class SupabaseService {
     await _client.auth.signOut();
   }
 
-  /// Sign in / sign up with Google OAuth (opens browser).
-  static Future<void> signInWithGoogle() async {
-    await _client.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: 'com.mantrastreak.app://auth-callback',
+  /// Verify the 6-digit OTP sent to [email] during sign-up.
+  static Future<AuthResponse> verifyEmailOtp(
+      String email, String token) async {
+    return _client.auth.verifyOTP(
+      email: email,
+      token: token,
+      type: OtpType.signup,
     );
   }
 
-  /// Sign in / sign up with Facebook OAuth (opens browser).
-  static Future<void> signInWithFacebook() async {
-    await _client.auth.signInWithOAuth(
-      OAuthProvider.facebook,
-      redirectTo: 'com.mantrastreak.app://auth-callback',
+  /// Resend the sign-up confirmation OTP to [email].
+  static Future<void> resendEmailOtp(String email) async {
+    await _client.auth.resend(
+      type: OtpType.signup,
+      email: email,
     );
   }
 
