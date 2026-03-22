@@ -122,10 +122,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 8),
@@ -197,6 +200,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ],
                   ),
                 ),
+              ),
+            ),
+                ],
               ),
             ),
           ),
