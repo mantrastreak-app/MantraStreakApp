@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:just_audio/just_audio.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import 'prayer_selection_screen.dart';
@@ -22,19 +23,88 @@ class PrayerPageScreen extends StatefulWidget {
 
 class _PrayerPageScreenState extends State<PrayerPageScreen>
     with SingleTickerProviderStateMixin {
+  // ── Session timer ─────────────────────────────────────────────────────────
   bool _isPlaying = false;
   int _elapsedSeconds = 0;
   bool _showCompletion = false;
   Timer? _timer;
-
-  // Always 10 minutes
   static const int _totalSeconds = 600;
-
   int get _remaining => _totalSeconds - _elapsedSeconds;
 
+  // ── Audio player ──────────────────────────────────────────────────────────
+  AudioPlayer? _audioPlayer;
+  bool _audioReady = false;
+  bool _audioPlaying = false;
+  Duration _audioPosition = Duration.zero;
+  Duration _audioDuration = Duration.zero;
+  bool _audioLoading = false;
+  String? _audioError;
+  final List<StreamSubscription> _subs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _initAudio();
+  }
+
+  Future<void> _initAudio() async {
+    final url = widget.prayer.audioUrl;
+    if (url == null || url.isEmpty) return;
+
+    setState(() => _audioLoading = true);
+    final player = AudioPlayer();
+    _audioPlayer = player;
+
+    _subs.add(player.playerStateStream.listen((state) {
+      if (!mounted) return;
+      setState(() => _audioPlaying = state.playing);
+    }));
+
+    _subs.add(player.positionStream.listen((pos) {
+      if (!mounted) return;
+      setState(() => _audioPosition = pos);
+    }));
+
+    _subs.add(player.durationStream.listen((dur) {
+      if (!mounted) return;
+      setState(() => _audioDuration = dur ?? Duration.zero);
+    }));
+
+    try {
+      await player.setUrl(url);
+      await player.setLoopMode(LoopMode.one);
+      if (mounted) setState(() { _audioReady = true; _audioLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _audioError = 'Could not load audio'; _audioLoading = false; });
+    }
+  }
+
+  void _toggleAudio() {
+    final player = _audioPlayer;
+    if (player == null || !_audioReady) return;
+    if (_audioPlaying) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  }
+
+  void _seekAudio(double value) {
+    final player = _audioPlayer;
+    if (player == null || !_audioReady || _audioDuration == Duration.zero) return;
+    player.seek(Duration(milliseconds: (value * _audioDuration.inMilliseconds).round()));
+  }
+
+  // ── Session timer ─────────────────────────────────────────────────────────
   String _formatTime(int seconds) {
     final m = (seconds ~/ 60).toString().padLeft(2, '0');
     final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  String _formatDuration(Duration d) {
+    final m = d.inMinutes.toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
     return '$m:$s';
   }
 
@@ -48,6 +118,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
           } else {
             _isPlaying = false;
             _timer?.cancel();
+            _audioPlayer?.stop();
             _showCompletion = true;
           }
         });
@@ -60,6 +131,8 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
   @override
   void dispose() {
     _timer?.cancel();
+    for (final s in _subs) { s.cancel(); }
+    _audioPlayer?.dispose();
     super.dispose();
   }
 
@@ -81,7 +154,6 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
               borderRadius: BorderRadius.circular(24),
               child: Stack(
                 children: [
-                  // ── Main content ──────────────────────────────────────────
                   Column(
                     children: [
                       _buildPrayerHeader(),
@@ -101,7 +173,6 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
                       _buildPlayerControls(),
                     ],
                   ),
-                  // ── Streak complete overlay ───────────────────────────────
                   if (_showCompletion) _buildCompletionOverlay(),
                 ],
               ),
@@ -158,26 +229,17 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
         children: [
           const Text('SANSKRIT', style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSubtle, letterSpacing: 0.35)),
           const SizedBox(height: 12),
-          Text(
-            widget.prayer.sanskritName,
-            style: AppTextStyles.sanskritText,
-          ),
+          Text(widget.prayer.sanskritName, style: AppTextStyles.sanskritText),
           const SizedBox(height: 20),
           const Text('PRONUNCIATION', style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSubtle, letterSpacing: 0.35)),
           const SizedBox(height: 12),
-          Text(
-            widget.prayer.transliteration,
-            style: AppTextStyles.pronunciationText,
-          ),
+          Text(widget.prayer.transliteration, style: AppTextStyles.pronunciationText),
           const SizedBox(height: 16),
           const Divider(color: AppColors.primaryBorder),
           const SizedBox(height: 16),
           const Text('MEANING', style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSubtle, letterSpacing: 0.35)),
           const SizedBox(height: 12),
-          Text(
-            widget.prayer.meaning,
-            style: AppTextStyles.quoteText,
-          ),
+          Text(widget.prayer.meaning, style: AppTextStyles.quoteText),
         ],
       ),
     );
@@ -197,9 +259,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
           const Text('BENEFITS', style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSubtle, letterSpacing: 0.35)),
           const SizedBox(height: 8),
           Text(
-            widget.prayer.objective.isNotEmpty
-                ? widget.prayer.objective
-                : widget.prayer.meaning,
+            widget.prayer.objective.isNotEmpty ? widget.prayer.objective : widget.prayer.meaning,
             style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMedium),
           ),
         ],
@@ -215,7 +275,11 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
       ),
       child: Column(
         children: [
-          // Big countdown display
+          // ── Audio player (shown only when audio URL exists) ────────────
+          if (widget.prayer.audioUrl != null && widget.prayer.audioUrl!.isNotEmpty)
+            _buildAudioSection(),
+
+          // ── Session timer ─────────────────────────────────────────────
           Text(
             _formatTime(_remaining),
             style: const TextStyle(
@@ -232,7 +296,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
             style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSubtle),
           ),
           const SizedBox(height: 20),
-          // Large Start Chanting / Pause button
+          // ── Start / Pause chanting button ─────────────────────────────
           GestureDetector(
             onTap: _togglePlay,
             child: Container(
@@ -274,6 +338,100 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
     );
   }
 
+  Widget _buildAudioSection() {
+    final sliderValue = (_audioDuration.inMilliseconds > 0)
+        ? (_audioPosition.inMilliseconds / _audioDuration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.music_note_rounded, size: 14, color: AppColors.primary),
+              const SizedBox(width: 6),
+              const Text(
+                'MANTRA AUDIO',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSubtle,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+              if (_audioLoading)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                )
+              else if (_audioError != null)
+                const Icon(Icons.error_outline, size: 18, color: AppColors.textLight)
+              else
+                GestureDetector(
+                  onTap: _toggleAudio,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      gradient: AppGradients.primaryButton,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _audioPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (_audioError != null) ...[
+            const SizedBox(height: 6),
+            Text(_audioError!, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textLight)),
+          ] else if (_audioReady) ...[
+            const SizedBox(height: 4),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 3,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                activeTrackColor: AppColors.primary,
+                inactiveTrackColor: AppColors.border,
+                thumbColor: AppColors.primary,
+                overlayColor: AppColors.primarySurface,
+              ),
+              child: Slider(
+                value: sliderValue,
+                onChanged: _seekAudio,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_formatDuration(_audioPosition), style: AppTextStyles.labelSmall),
+                  Text(_formatDuration(_audioDuration), style: AppTextStyles.labelSmall),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildCompletionOverlay() {
     return Positioned.fill(
       child: TweenAnimationBuilder<double>(
@@ -292,7 +450,6 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Animated checkmark circle
               Container(
                 width: 120,
                 height: 120,

@@ -20,6 +20,7 @@ dependencies:
   percent_indicator: ^4.2.3
   supabase_flutter: ^2.3.0
   app_settings: ^5.1.1
+  just_audio: ^0.9.40
 
 dev_dependencies:
   flutter_test:
