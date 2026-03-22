@@ -158,15 +158,15 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
         children: [
           const Text('SANSKRIT', style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSubtle, letterSpacing: 0.35)),
           const SizedBox(height: 12),
-          const Text(
-            'ॐ। असतो मा सद्गमय। तमसो मा ज्योतिर्गमय। मृत्योर्मा अमृतं गमय। ॐ शान्तिः शान्तिः शान्तिः।',
+          Text(
+            widget.prayer.sanskritName,
             style: AppTextStyles.sanskritText,
           ),
           const SizedBox(height: 20),
           const Text('PRONUNCIATION', style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSubtle, letterSpacing: 0.35)),
           const SizedBox(height: 12),
-          const Text(
-            'Om, Asato Ma Sad Gamaya, Tamaso Ma Jyotir Gamaya, Mrityor Ma Amritam Gamaya, Om Shanti Shanti Shanti',
+          Text(
+            widget.prayer.transliteration,
             style: AppTextStyles.pronunciationText,
           ),
           const SizedBox(height: 16),
@@ -174,8 +174,8 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
           const SizedBox(height: 16),
           const Text('MEANING', style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSubtle, letterSpacing: 0.35)),
           const SizedBox(height: 12),
-          const Text(
-            'Om, Lead me from untruth to truth. Lead me from darkness to light. Lead me from death to immortality. Om Peace, Peace, Peace.',
+          Text(
+            widget.prayer.meaning,
             style: AppTextStyles.quoteText,
           ),
         ],
@@ -196,7 +196,12 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
         children: [
           const Text('BENEFITS', style: TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSubtle, letterSpacing: 0.35)),
           const SizedBox(height: 8),
-          Text(widget.prayer.description, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMedium)),
+          Text(
+            widget.prayer.objective.isNotEmpty
+                ? widget.prayer.objective
+                : widget.prayer.meaning,
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMedium),
+          ),
         ],
       ),
     );

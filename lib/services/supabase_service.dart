@@ -174,6 +174,25 @@ class SupabaseService {
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Mantras
+  // ---------------------------------------------------------------------------
+
+  /// Fetch mantras for a given mood from the mantras_by_mood view.
+  static Future<List<Map<String, dynamic>>> fetchMantrasByMood(
+      String moodName) async {
+    final response = await _client
+        .from('mantras_by_mood')
+        .select()
+        .eq('mood_name', moodName)
+        .order('display_order');
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Prayer Sessions
+  // ---------------------------------------------------------------------------
+
   /// Fetch all distinct dates when the user completed a prayer.
   static Future<Set<DateTime>> loadCompletedDays() async {
     final userId = currentUser?.id;

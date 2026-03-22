@@ -167,6 +167,7 @@ class _AppRouterState extends State<AppRouter> {
           mood: _selectedMood ?? 'Good',
           onStart: (prayer) {
             setState(() => _selectedPrayer = prayer);
+            state.selectedPrayer = prayer.title;
             state.selectedPrayerDeity = prayer.deity;
             state.selectedPrayerDuration = prayer.durationMinutes;
             _navigate(AppRoute.prayerPage);
