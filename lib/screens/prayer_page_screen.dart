@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:just_audio/just_audio.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../services/supabase_service.dart';
@@ -73,11 +74,26 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
 
     try {
       final resolvedUrl = await SupabaseService.resolveAudioUrl(url);
-      await player.setUrl(resolvedUrl);
+
+      // Pass the Supabase Bearer token so ExoPlayer can fetch private-bucket
+      // objects. Public-bucket URLs simply ignore the extra header.
+      final token = Supabase.instance.client.auth.currentSession?.accessToken;
+      final headers = token != null
+          ? {'Authorization': 'Bearer $token'}
+          : <String, String>{};
+
+      await player.setAudioSource(
+        AudioSource.uri(Uri.parse(resolvedUrl), headers: headers),
+      );
       await player.setLoopMode(LoopMode.one);
       if (mounted) setState(() { _audioReady = true; _audioLoading = false; });
     } catch (e) {
-      if (mounted) setState(() { _audioError = 'Could not load audio: $e'; _audioLoading = false; });
+      if (mounted) {
+        setState(() {
+          _audioError = 'Could not load audio: $e';
+          _audioLoading = false;
+        });
+      }
     }
   }
 
