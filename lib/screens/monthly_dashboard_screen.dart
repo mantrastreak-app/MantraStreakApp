@@ -74,7 +74,6 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildTopBar(),
                           _buildHeader(),
                           _buildStatsRow(),
                           _buildCalendarControls(monthName, year, completionCount, completionPercent),
@@ -98,19 +97,6 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
     return widget.completedDays.where((d) =>
       d.year == _currentMonth.year && d.month == _currentMonth.month
     ).length;
-  }
-
-  Widget _buildTopBar() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(24, 12, 24, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('4:09', style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: AppColors.textMedium)),
-          Icon(Icons.battery_full, color: AppColors.textMedium, size: 18),
-        ],
-      ),
-    );
   }
 
   Widget _buildHeader() {
