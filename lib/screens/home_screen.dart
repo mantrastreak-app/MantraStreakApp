@@ -26,16 +26,9 @@ class HomeScreen extends StatelessWidget {
       body: AppBackground(
         child: SafeArea(
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [
-                BoxShadow(color: Color(0x40000000), blurRadius: 50, offset: Offset(0, 25)),
-              ],
-            ),
+            color: AppColors.white,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.zero,
               child: Column(
                 children: [
                   Expanded(
