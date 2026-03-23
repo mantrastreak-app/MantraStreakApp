@@ -36,6 +36,7 @@ class SupabaseService {
     return _client.auth.signUp(
       email: email,
       password: password,
+      emailRedirectTo: null,
     );
   }
 
