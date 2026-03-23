@@ -36,12 +36,44 @@ class SupabaseService {
     return _client.auth.signUp(
       email: email,
       password: password,
+      emailRedirectTo: null,
     );
   }
 
   /// Sign out the current user.
   static Future<void> signOut() async {
     await _client.auth.signOut();
+  }
+
+  /// Verify the 6-digit OTP sent to [email] during sign-up.
+  static Future<AuthResponse> verifyEmailOtp(
+      String email, String token) async {
+    return _client.auth.verifyOTP(
+      email: email,
+      token: token,
+      type: OtpType.signup,
+    );
+  }
+
+  /// Resend the sign-up confirmation OTP to [email].
+  static Future<void> resendEmailOtp(String email) async {
+    await _client.auth.resend(
+      type: OtpType.signup,
+      email: email,
+    );
+  }
+
+  /// Send a password reset email.
+  static Future<void> sendPasswordResetEmail(String email) async {
+    await _client.auth.resetPasswordForEmail(
+      email,
+      redirectTo: 'com.mantrastreak.app://reset-password',
+    );
+  }
+
+  /// Update password for the currently signed-in user.
+  static Future<void> updatePassword(String newPassword) async {
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
   }
 
   // ---------------------------------------------------------------------------
@@ -144,6 +176,43 @@ class SupabaseService {
       'duration_minutes': durationMinutes,
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // Mantras
+  // ---------------------------------------------------------------------------
+
+  /// Fetch mantras for a given mood from the mantras_by_mood view.
+  static Future<List<Map<String, dynamic>>> fetchMantrasByMood(
+      String moodName) async {
+    final response = await _client
+        .from('mantras_by_mood')
+        .select()
+        .eq('mood_name', moodName)
+        .order('display_order');
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Audio
+  // ---------------------------------------------------------------------------
+
+  /// Resolve an audio_url value to a playable URL.
+  ///
+  /// If [rawUrl] already starts with "http" it is returned as-is (public URL).
+  /// Otherwise it is treated as a Supabase Storage path (e.g. "audio/file.mp3")
+  /// and a 1-hour signed URL is generated.
+  static Future<String> resolveAudioUrl(String rawUrl,
+      {String bucket = 'mantras'}) async {
+    if (rawUrl.startsWith('http')) return rawUrl;
+    final response = await _client.storage
+        .from(bucket)
+        .createSignedUrl(rawUrl, 3600);
+    return response;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Prayer Sessions
+  // ---------------------------------------------------------------------------
 
   /// Fetch all distinct dates when the user completed a prayer.
   static Future<Set<DateTime>> loadCompletedDays() async {

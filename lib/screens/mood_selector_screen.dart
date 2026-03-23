@@ -5,8 +5,9 @@ import '../widgets/gradient_button.dart';
 
 class MoodSelectorScreen extends StatefulWidget {
   final void Function(String mood) onContinue;
+  final VoidCallback onBack;
 
-  const MoodSelectorScreen({super.key, required this.onContinue});
+  const MoodSelectorScreen({super.key, required this.onContinue, required this.onBack});
 
   @override
   State<MoodSelectorScreen> createState() => _MoodSelectorScreenState();
@@ -21,7 +22,6 @@ class _MoodSelectorScreenState extends State<MoodSelectorScreen> {
     _Mood(emoji: '😐', label: 'Neutral'),
     _Mood(emoji: '😔', label: 'Bad'),
     _Mood(emoji: '😢', label: 'Terrible'),
-    _Mood(emoji: '🤔', label: 'Other'),
   ];
 
   @override
@@ -29,44 +29,74 @@ class _MoodSelectorScreenState extends State<MoodSelectorScreen> {
     return Scaffold(
       body: AppBackground(
         child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'How are you feeling\ntoday?',
-                        style: AppTextStyles.displayMedium.copyWith(height: 1.375),
-                        textAlign: TextAlign.center,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [
+                BoxShadow(color: Color(0x40000000), blurRadius: 50, offset: Offset(0, 25)),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: GestureDetector(
+                        onTap: widget.onBack,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.arrow_back_ios_rounded, size: 16, color: AppColors.textSubtle),
+                            const SizedBox(width: 4),
+                            Text('Back', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSubtle)),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Choose a mood to personalize your prayer',
-                        style: AppTextStyles.bodyLarge,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 32),
-                      ..._moods.map((mood) => _MoodRow(
-                        mood: mood,
-                        isSelected: _selectedMood == mood.label,
-                        onTap: () => setState(() => _selectedMood = mood.label),
-                      )),
-                    ],
+                    ),
                   ),
-                ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            'How are you feeling\ntoday?',
+                            style: AppTextStyles.displayMedium.copyWith(height: 1.375),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Choose a mood to personalize your prayer',
+                            style: AppTextStyles.bodyLarge,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 32),
+                          ..._moods.map((mood) => _MoodRow(
+                            mood: mood,
+                            isSelected: _selectedMood == mood.label,
+                            onTap: () => setState(() => _selectedMood = mood.label),
+                          )),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: GradientButton(
+                      label: 'Continue',
+                      onPressed: _selectedMood != null ? () => widget.onContinue(_selectedMood!) : null,
+                      isEnabled: _selectedMood != null,
+                    ),
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(36, 0, 36, 32),
-                child: GradientButton(
-                  label: 'Continue',
-                  onPressed: _selectedMood != null ? () => widget.onContinue(_selectedMood!) : null,
-                  isEnabled: _selectedMood != null,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

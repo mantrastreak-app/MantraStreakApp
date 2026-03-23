@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/app_logo.dart';
@@ -10,6 +9,7 @@ class HomeScreen extends StatelessWidget {
   final int totalDays;
   final VoidCallback onLetsPray;
   final VoidCallback onViewDashboard;
+  final VoidCallback onProfile;
 
   const HomeScreen({
     super.key,
@@ -17,6 +17,7 @@ class HomeScreen extends StatelessWidget {
     this.totalDays = 0,
     required this.onLetsPray,
     required this.onViewDashboard,
+    required this.onProfile,
   });
 
   @override
@@ -37,7 +38,6 @@ class HomeScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
               child: Column(
                 children: [
-                  _buildTopBar(),
                   Expanded(
                     child: SingleChildScrollView(
                       child: Padding(
@@ -58,14 +58,10 @@ class HomeScreen extends StatelessWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                    child: Column(
-                      children: [
-                        GradientButton(
-                          label: "Let's Pray",
-                          onPressed: onLetsPray,
-                          height: 68,
-                        ),
-                      ],
+                    child: GradientButton(
+                      label: "Let's Pray",
+                      onPressed: onLetsPray,
+                      height: 68,
                     ),
                   ),
                 ],
@@ -77,33 +73,33 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopBar() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(24, 12, 24, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('4:06', style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: AppColors.textMedium)),
-          Icon(Icons.battery_full, color: AppColors.textMedium, size: 18),
-        ],
-      ),
-    );
-  }
-
   Widget _buildAppHeader() {
     return Row(
       children: [
         const AppLogo(size: 56),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Mantra Streak', style: AppTextStyles.headlineLarge.copyWith(fontSize: 24)),
-            Text(
-              'Continue your spiritual journey',
-              style: AppTextStyles.bodyMedium,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Mantra Streak', style: AppTextStyles.headlineLarge.copyWith(fontSize: 24)),
+              Text('Continue your spiritual journey', style: AppTextStyles.bodyMedium),
+            ],
+          ),
+        ),
+        // Profile icon — top right
+        GestureDetector(
+          onTap: onProfile,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primarySurface,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primaryBorderDark, width: 1.5),
             ),
-          ],
+            child: const Icon(Icons.person_outline_rounded, color: AppColors.primary, size: 22),
+          ),
         ),
       ],
     );
@@ -132,45 +128,36 @@ class HomeScreen extends StatelessWidget {
                   Container(
                     width: 48,
                     height: 48,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primarySurface,
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: const BoxDecoration(color: AppColors.primarySurface, shape: BoxShape.circle),
                     child: const Icon(Icons.local_fire_department, color: AppColors.primary, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Daily Streak',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          color: AppColors.textLight,
-                        ),
-                      ),
-                      Text(
-                        '$streak Days',
-                        style: AppTextStyles.streakNumber,
-                      ),
+                      const Text('Daily Streak', style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: AppColors.textLight)),
+                      Text('$streak Days', style: AppTextStyles.streakNumber),
                     ],
                   ),
                 ],
               ),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.primarySurface,
-                  shape: BoxShape.circle,
+              // Dashboard icon — now tappable
+              GestureDetector(
+                onTap: onViewDashboard,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySurface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primaryBorderDark, width: 1),
+                  ),
+                  child: const Icon(Icons.bar_chart_rounded, color: AppColors.primary, size: 22),
                 ),
-                child: const Icon(Icons.trending_up, color: AppColors.primary, size: 20),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          // Week indicator dots
           Row(
             children: List.generate(7, (i) => Expanded(
               child: Padding(
@@ -178,7 +165,9 @@ class HomeScreen extends StatelessWidget {
                 child: Container(
                   height: 32,
                   decoration: BoxDecoration(
-                    color: i < streak ? AppColors.primary.withOpacity(0.15) : AppColors.surface,
+                    color: i < streak
+                        ? AppColors.primary.withValues(alpha: 0.15)
+                        : AppColors.surface,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppColors.border, width: 1),
                   ),
@@ -228,25 +217,14 @@ class HomeScreen extends StatelessWidget {
               Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.primarySurface,
-                  shape: BoxShape.circle,
-                ),
+                decoration: const BoxDecoration(color: AppColors.primarySurface, shape: BoxShape.circle),
                 child: const Icon(Icons.menu_book_outlined, color: AppColors.primary, size: 20),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Verse of the Day',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textDark,
-                    ),
-                  ),
+                  const Text('Verse of the Day', style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark)),
                   Text('Bhagavad Gita 2.20', style: AppTextStyles.bodyMedium),
                 ],
               ),
@@ -259,31 +237,16 @@ class HomeScreen extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
-          Divider(color: AppColors.primaryBorder.withOpacity(0.6)),
+          const Divider(color: AppColors.primaryBorder),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'न जायते म्रियते वा कदाचित्',
-                  style: const TextStyle(
-                    fontFamily: 'Noto Sans Devanagari',
-                    fontSize: 14,
-                    color: AppColors.textSubtle,
-                  ),
-                ),
-              ),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.primarySurface,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.volume_up_outlined, color: AppColors.primary, size: 20),
-              ),
-            ],
+          // Audio icon removed — Sanskrit text only
+          const Text(
+            'न जायते म्रियते वा कदाचित्',
+            style: TextStyle(
+              fontFamily: 'Noto Sans Devanagari',
+              fontSize: 14,
+              color: AppColors.textSubtle,
+            ),
           ),
         ],
       ),

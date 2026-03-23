@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/gradient_button.dart';
@@ -13,20 +15,14 @@ class Deity {
 
 class DeitySelectionScreen extends StatefulWidget {
   final VoidCallback onContinue;
-  final VoidCallback onSkip;
 
-  const DeitySelectionScreen({
-    super.key,
-    required this.onContinue,
-    required this.onSkip,
-  });
+  const DeitySelectionScreen({super.key, required this.onContinue});
 
   @override
   State<DeitySelectionScreen> createState() => _DeitySelectionScreenState();
 }
 
 class _DeitySelectionScreenState extends State<DeitySelectionScreen> {
-  final Set<String> _selected = {};
 
   static const _deities = [
     Deity(name: 'Ganesha', icon: Icons.self_improvement, bgColor: AppColors.ganeshaIconBg),
@@ -50,11 +46,7 @@ class _DeitySelectionScreenState extends State<DeitySelectionScreen> {
               color: AppColors.white,
               borderRadius: BorderRadius.circular(24),
               boxShadow: const [
-                BoxShadow(
-                  color: Color(0x40000000),
-                  blurRadius: 50,
-                  offset: Offset(0, 25),
-                ),
+                BoxShadow(color: Color(0x40000000), blurRadius: 50, offset: Offset(0, 25)),
               ],
             ),
             child: ClipRRect(
@@ -87,7 +79,7 @@ class _DeitySelectionScreenState extends State<DeitySelectionScreen> {
                       label: 'Continue',
                       onPressed: widget.onContinue,
                       showArrow: true,
-                      isEnabled: _selected.isNotEmpty,
+                      isEnabled: context.watch<AppState>().selectedDeities.isNotEmpty,
                     ),
                   ),
                 ],
@@ -101,43 +93,20 @@ class _DeitySelectionScreenState extends State<DeitySelectionScreen> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Progress bar (step 1 of 4)
-          _buildProgressBar(0.25),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: widget.onSkip,
-              child: Text(
-                'Skip',
-                style: AppTextStyles.labelMedium.copyWith(color: AppColors.textLight),
-              ),
-            ),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      child: _buildProgressBar(0.25),
     );
   }
 
   Widget _buildProgressBar(double progress) {
     return Container(
       height: 6,
-      decoration: BoxDecoration(
-        color: AppColors.border,
-        borderRadius: BorderRadius.circular(100),
-      ),
+      decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(100)),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress,
         child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.textDark,
-            borderRadius: BorderRadius.circular(100),
-          ),
+          decoration: BoxDecoration(color: AppColors.textDark, borderRadius: BorderRadius.circular(100)),
         ),
       ),
     );
@@ -156,19 +125,11 @@ class _DeitySelectionScreenState extends State<DeitySelectionScreen> {
       itemCount: _deities.length,
       itemBuilder: (context, index) {
         final deity = _deities[index];
-        final isSelected = _selected.contains(deity.name);
+        final isSelected = context.watch<AppState>().selectedDeities.contains(deity.name);
         return _DeityCard(
           deity: deity,
           isSelected: isSelected,
-          onTap: () {
-            setState(() {
-              if (isSelected) {
-                _selected.remove(deity.name);
-              } else {
-                _selected.add(deity.name);
-              }
-            });
-          },
+          onTap: () => context.read<AppState>().toggleDeity(deity.name),
         );
       },
     );
@@ -180,11 +141,7 @@ class _DeityCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _DeityCard({
-    required this.deity,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _DeityCard({required this.deity, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -210,11 +167,7 @@ class _DeityCard extends StatelessWidget {
                 color: deity.bgColor,
                 shape: BoxShape.circle,
                 boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1A000000),
-                    blurRadius: 3,
-                    offset: Offset(0, 1),
-                  ),
+                  BoxShadow(color: Color(0x1A000000), blurRadius: 3, offset: Offset(0, 1)),
                 ],
               ),
               child: Icon(

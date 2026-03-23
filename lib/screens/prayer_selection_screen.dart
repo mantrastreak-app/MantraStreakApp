@@ -2,27 +2,95 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/gradient_button.dart';
+import '../services/supabase_service.dart';
 
 class Prayer {
+  final String id;
   final String title;
   final String sanskritName;
   final String transliteration;
-  final String description;
-  final int durationMinutes;
+  final String meaning;
+  final String moodSpecificMeaning;
+  final String objective;
   final String deity;
+  final int durationSeconds;
+  final String? audioUrl;
   final Color iconBg;
   final IconData icon;
 
   const Prayer({
+    required this.id,
     required this.title,
     required this.sanskritName,
     required this.transliteration,
-    required this.description,
-    required this.durationMinutes,
+    required this.meaning,
+    required this.moodSpecificMeaning,
+    required this.objective,
     required this.deity,
+    required this.durationSeconds,
+    this.audioUrl,
     required this.iconBg,
     required this.icon,
   });
+
+  int get durationMinutes => (durationSeconds / 60).ceil().clamp(1, 60);
+
+  factory Prayer.fromSupabase(Map<String, dynamic> row) {
+    return Prayer(
+      id: (row['mantra_id'] ?? '').toString(),
+      title: row['title'] as String? ?? '',
+      sanskritName: row['sanskrit_name'] as String? ?? '',
+      transliteration: row['transliteration'] as String? ?? '',
+      meaning: row['meaning'] as String? ?? '',
+      moodSpecificMeaning: row['mood_specific_meaning'] as String? ?? '',
+      objective: row['objective'] as String? ?? '',
+      deity: row['deity'] as String? ?? '',
+      durationSeconds: row['duration_seconds'] as int? ?? 0,
+      audioUrl: row['audio_url'] as String?,
+      iconBg: _parseColor(row['icon_color_hex'] as String?),
+      icon: _parseIcon(row['icon_name'] as String?),
+    );
+  }
+
+  static Color _parseColor(String? hex) {
+    if (hex == null || hex.length < 7) return const Color(0x21E8E8E8);
+    try {
+      final value = int.parse(hex.replaceAll('#', ''), radix: 16);
+      return Color(0xFF000000 | value).withValues(alpha: 0.15);
+    } catch (_) {
+      return const Color(0x21E8E8E8);
+    }
+  }
+
+  static IconData _parseIcon(String? name) {
+    const map = <String, IconData>{
+      'wb_sunny': Icons.wb_sunny,
+      'music_note': Icons.music_note,
+      'celebration': Icons.celebration,
+      'favorite': Icons.favorite,
+      'self_improvement': Icons.self_improvement,
+      'auto_awesome': Icons.auto_awesome,
+      'light_mode': Icons.light_mode,
+      'shield': Icons.shield,
+      'emoji_events': Icons.emoji_events,
+      'fitness_center': Icons.fitness_center,
+      'whatshot': Icons.whatshot,
+      'spa': Icons.spa,
+      'volunteer_activism': Icons.volunteer_activism,
+      'star': Icons.star,
+      'all_inclusive': Icons.all_inclusive,
+      'healing': Icons.healing,
+      'nightlight_round': Icons.nightlight_round,
+      'monetization_on': Icons.monetization_on,
+      'diamond': Icons.diamond,
+      'verified': Icons.verified,
+      'psychology': Icons.psychology,
+      'favorite_border': Icons.favorite_border,
+      'air': Icons.air,
+      'shield_outlined': Icons.shield_outlined,
+    };
+    return map[name] ?? Icons.self_improvement;
+  }
 }
 
 class PrayerSelectionScreen extends StatefulWidget {
@@ -43,49 +111,30 @@ class PrayerSelectionScreen extends StatefulWidget {
 
 class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
   Prayer? _selectedPrayer;
+  List<Prayer> _prayers = [];
+  bool _loading = true;
+  String? _error;
 
-  static final List<Prayer> _prayers = [
-    const Prayer(
-      title: 'Healing Prayer',
-      sanskritName: 'महामृत्युंजय मंत्र',
-      transliteration: 'Mahamrityunjaya Mantra',
-      description: 'Powerful healing and rejuvenation',
-      durationMinutes: 10,
-      deity: 'Shiva',
-      iconBg: Color(0x21E8E8E8),
-      icon: Icons.favorite_border,
-    ),
-    const Prayer(
-      title: 'Strength Mantra',
-      sanskritName: 'ॐ हनुमते नमः',
-      transliteration: 'Salutations to Hanuman',
-      description: 'Builds inner strength and courage',
-      durationMinutes: 8,
-      deity: 'Hanuman',
-      iconBg: Color(0x21FF6347),
-      icon: Icons.fitness_center,
-    ),
-    const Prayer(
-      title: 'Comfort Chant',
-      sanskritName: 'सांत्वना मंत्र',
-      transliteration: 'Prayer for solace',
-      description: 'Soothes emotional pain',
-      durationMinutes: 7,
-      deity: '',
-      iconBg: Color(0x21DDA0DD),
-      icon: Icons.nightlight_round,
-    ),
-    const Prayer(
-      title: 'Release Prayer',
-      sanskritName: 'मुक्ति मंत्र',
-      transliteration: 'Mantra for letting go',
-      description: 'Releases negative emotions',
-      durationMinutes: 9,
-      deity: '',
-      iconBg: Color(0x21FFB6C1),
-      icon: Icons.spa,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final rows = await SupabaseService.fetchMantrasByMood(widget.mood);
+      setState(() {
+        _prayers = rows.map(Prayer.fromSupabase).toList();
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +154,6 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
               borderRadius: BorderRadius.circular(24),
               child: Column(
                 children: [
-                  _buildTopBar(),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
@@ -114,14 +162,18 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
                         children: [
                           GestureDetector(
                             onTap: widget.onBack,
-                            child: Text(
-                              '← Back',
-                              style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSubtle),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.arrow_back_ios_rounded, size: 16, color: AppColors.textSubtle),
+                                const SizedBox(width: 4),
+                                Text('Back', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSubtle)),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 20),
                           const Text(
-                            "We're here to support you 🤲",
+                            "We're here to support you",
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 30,
@@ -136,11 +188,28 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
                             style: AppTextStyles.bodyLarge,
                           ),
                           const SizedBox(height: 24),
-                          ..._prayers.map((p) => _PrayerCard(
-                            prayer: p,
-                            isSelected: _selectedPrayer == p,
-                            onTap: () => setState(() => _selectedPrayer = p),
-                          )),
+                          if (_loading)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(40),
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          else if (_error != null)
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text('Failed to load mantras.\n$_error',
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSubtle)),
+                              ),
+                            )
+                          else
+                            ..._prayers.map((p) => _PrayerCard(
+                              prayer: p,
+                              isSelected: _selectedPrayer == p,
+                              onTap: () => setState(() => _selectedPrayer = p),
+                            )),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -161,19 +230,6 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTopBar() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(24, 12, 24, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('4:09', style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: AppColors.textMedium)),
-          Icon(Icons.battery_full, color: AppColors.textMedium, size: 18),
-        ],
       ),
     );
   }
@@ -206,7 +262,6 @@ class _PrayerCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon
               Container(
                 width: 48,
                 height: 48,
@@ -246,20 +301,13 @@ class _PrayerCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _Tag(
-                          text: '${prayer.durationMinutes} min',
-                          dotColor: AppColors.primaryLight,
-                        ),
-                        if (prayer.deity.isNotEmpty) ...[
-                          const SizedBox(width: 12),
-                          _Tag(text: prayer.deity, dotColor: const Color(0xFF51A2FF)),
-                        ],
-                      ],
-                    ),
+                    if (prayer.deity.isNotEmpty)
+                      _Tag(text: prayer.deity, dotColor: const Color(0xFF51A2FF)),
                     const SizedBox(height: 8),
-                    Text(prayer.description, style: AppTextStyles.labelSmall),
+                    Text(prayer.moodSpecificMeaning.isNotEmpty
+                        ? prayer.moodSpecificMeaning
+                        : prayer.meaning,
+                        style: AppTextStyles.labelSmall),
                   ],
                 ),
               ),

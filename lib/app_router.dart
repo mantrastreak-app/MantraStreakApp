@@ -3,25 +3,33 @@ import 'package:provider/provider.dart';
 import 'models/app_state.dart';
 import 'services/supabase_service.dart';
 import 'screens/splash_screen.dart';
-import 'screens/deity_selection_screen.dart';
-import 'screens/reminder_time_screen.dart';
-import 'screens/prayer_days_screen.dart';
-import 'screens/all_set_screen.dart';
+import 'screens/education_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/deity_selection_screen.dart';
+import 'screens/enable_notifications_screen.dart';
+import 'screens/reminder_screen.dart';
+import 'screens/all_set_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/profile_screen.dart';
 import 'screens/mood_selector_screen.dart';
 import 'screens/prayer_selection_screen.dart';
 import 'screens/prayer_page_screen.dart';
 import 'screens/monthly_dashboard_screen.dart';
+import 'screens/otp_verification_screen.dart';
 
+// Onboarding: splash → education → login → otpVerification → deitySelection → enableNotifications → reminder → allSet → home
+// Main app:   home ↔ profile, moodSelector → prayerSelection → prayerPage, home ↔ monthlyDashboard
 enum AppRoute {
   splash,
-  deitySelection,
-  reminderTime,
-  prayerDays,
-  allSet,
+  education,
   login,
+  otpVerification,
+  deitySelection,
+  enableNotifications,
+  reminder,
+  allSet,
   home,
+  profile,
   moodSelector,
   prayerSelection,
   prayerPage,
@@ -39,11 +47,12 @@ class _AppRouterState extends State<AppRouter> {
   AppRoute _currentRoute = AppRoute.splash;
   String? _selectedMood;
   Prayer? _selectedPrayer;
+  bool _signInMode = false; // true after logout → show sign-in, not sign-up
+  String? _pendingOtpEmail;
 
   @override
   void initState() {
     super.initState();
-    // If a Supabase session already exists, load user data and skip to home.
     if (SupabaseService.isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await context.read<AppState>().loadUserData();
@@ -52,22 +61,17 @@ class _AppRouterState extends State<AppRouter> {
     }
   }
 
-  void _navigate(AppRoute route) {
-    setState(() => _currentRoute = route);
-  }
+  void _navigate(AppRoute route) => setState(() => _currentRoute = route);
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
-
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 350),
       transitionBuilder: (child, animation) {
-        final slideAnimation = Tween<Offset>(
-          begin: const Offset(1.0, 0.0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
-        return SlideTransition(position: slideAnimation, child: child);
+        final slide = Tween<Offset>(begin: const Offset(1.0, 0.0), end: Offset.zero)
+            .animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+        return SlideTransition(position: slide, child: child);
       },
       child: _buildCurrentScreen(state),
     );
@@ -78,41 +82,67 @@ class _AppRouterState extends State<AppRouter> {
       case AppRoute.splash:
         return SplashScreen(
           key: const ValueKey(AppRoute.splash),
-          onGetStarted: () => _navigate(AppRoute.deitySelection),
+          onGetStarted: () => _navigate(AppRoute.education),
         );
 
-      case AppRoute.deitySelection:
-        return DeitySelectionScreen(
-          key: const ValueKey(AppRoute.deitySelection),
-          onContinue: () => _navigate(AppRoute.reminderTime),
-          onSkip: () => _navigate(AppRoute.reminderTime),
-        );
-
-      case AppRoute.reminderTime:
-        return ReminderTimeScreen(
-          key: const ValueKey(AppRoute.reminderTime),
-          onContinue: () => _navigate(AppRoute.prayerDays),
-          onSkip: () => _navigate(AppRoute.prayerDays),
-        );
-
-      case AppRoute.prayerDays:
-        return PrayerDaysScreen(
-          key: const ValueKey(AppRoute.prayerDays),
-          onContinue: () => _navigate(AppRoute.allSet),
-          onSkip: () => _navigate(AppRoute.allSet),
-        );
-
-      case AppRoute.allSet:
-        return AllSetScreen(
-          key: const ValueKey(AppRoute.allSet),
+      case AppRoute.education:
+        return EducationScreen(
+          key: const ValueKey(AppRoute.education),
           onContinue: () => _navigate(AppRoute.login),
         );
 
       case AppRoute.login:
         return LoginScreen(
           key: const ValueKey(AppRoute.login),
-          onSignIn: () => _navigate(AppRoute.home),
-          onSkip: () => _navigate(AppRoute.home),
+          startInSignUpMode: !_signInMode,
+          onSignIn: () {
+            _signInMode = false;
+            _navigate(AppRoute.home);
+          },
+          onPendingOtp: (email) {
+            setState(() => _pendingOtpEmail = email);
+            _navigate(AppRoute.otpVerification);
+          },
+        );
+
+      case AppRoute.otpVerification:
+        return OtpVerificationScreen(
+          key: const ValueKey(AppRoute.otpVerification),
+          email: _pendingOtpEmail!,
+          onVerified: () async {
+            await context.read<AppState>().loadUserData();
+            if (mounted) _navigate(AppRoute.deitySelection);
+          },
+          onBack: () => _navigate(AppRoute.login),
+        );
+
+      case AppRoute.deitySelection:
+        return DeitySelectionScreen(
+          key: const ValueKey(AppRoute.deitySelection),
+          onContinue: () => _navigate(AppRoute.enableNotifications),
+        );
+
+      case AppRoute.enableNotifications:
+        return EnableNotificationsScreen(
+          key: const ValueKey(AppRoute.enableNotifications),
+          onContinue: () => _navigate(AppRoute.reminder),
+        );
+
+      case AppRoute.reminder:
+        return ReminderScreen(
+          key: const ValueKey(AppRoute.reminder),
+          onContinue: () => _navigate(AppRoute.allSet),
+        );
+
+      case AppRoute.allSet:
+        return AllSetScreen(
+          key: const ValueKey(AppRoute.allSet),
+          onContinue: () {
+            state.saveProfile();
+            _navigate(AppRoute.home);
+          },
+          daysPerWeek: state.selectedDays.length,
+          deitiesSelected: state.selectedDeities.length,
         );
 
       case AppRoute.home:
@@ -122,11 +152,23 @@ class _AppRouterState extends State<AppRouter> {
           totalDays: state.totalPrayerDays,
           onLetsPray: () => _navigate(AppRoute.moodSelector),
           onViewDashboard: () => _navigate(AppRoute.monthlyDashboard),
+          onProfile: () => _navigate(AppRoute.profile),
+        );
+
+      case AppRoute.profile:
+        return ProfileScreen(
+          key: const ValueKey(AppRoute.profile),
+          onClose: () => _navigate(AppRoute.home),
+          onLogOut: () => setState(() {
+            _signInMode = true;
+            _currentRoute = AppRoute.login;
+          }),
         );
 
       case AppRoute.moodSelector:
         return MoodSelectorScreen(
           key: const ValueKey(AppRoute.moodSelector),
+          onBack: () => _navigate(AppRoute.home),
           onContinue: (mood) {
             setState(() => _selectedMood = mood);
             _navigate(AppRoute.prayerSelection);
@@ -139,7 +181,7 @@ class _AppRouterState extends State<AppRouter> {
           mood: _selectedMood ?? 'Good',
           onStart: (prayer) {
             setState(() => _selectedPrayer = prayer);
-            // Store prayer details in AppState for Supabase logging
+            state.selectedPrayer = prayer.title;
             state.selectedPrayerDeity = prayer.deity;
             state.selectedPrayerDuration = prayer.durationMinutes;
             _navigate(AppRoute.prayerPage);
