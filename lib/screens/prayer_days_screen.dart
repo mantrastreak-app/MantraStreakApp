@@ -46,9 +46,9 @@ class _PrayerDaysScreenState extends State<PrayerDaysScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Choose your prayer days', style: AppTextStyles.displayMedium),
+                          const Text('Choose your prayer days', style: AppTextStyles.displayMedium),
                           const SizedBox(height: 8),
-                          Text(
+                          const Text(
                             'Select which days you want to receive reminders',
                             style: AppTextStyles.bodyLarge,
                           ),

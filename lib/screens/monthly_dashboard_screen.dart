@@ -98,7 +98,7 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Your Journey', style: AppTextStyles.headlineMedium),
@@ -110,7 +110,7 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
             child: Container(
               width: 40,
               height: 40,
-              decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+              decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
               child: const Icon(Icons.close, color: AppColors.textSubtle, size: 20),
             ),
           ),
@@ -174,7 +174,7 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
                 child: Container(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
                   child: const Icon(Icons.chevron_left, color: AppColors.textSubtle),
                 ),
               ),
@@ -190,7 +190,7 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
                 child: Container(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
                   child: const Icon(Icons.chevron_right, color: AppColors.textSubtle),
                 ),
               ),
@@ -286,8 +286,8 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
   }
 
   Widget _buildLegend() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -296,7 +296,7 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
             gradient: AppGradients.appIcon,
             label: 'Completed',
           ),
-          const SizedBox(width: 24),
+          SizedBox(width: 24),
           _LegendItem(
             color: AppColors.primarySurface,
             border: AppColors.primaryLight,

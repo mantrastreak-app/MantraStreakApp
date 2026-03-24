@@ -76,7 +76,7 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Mantra Streak', style: AppTextStyles.headlineLarge.copyWith(fontSize: 24)),
-              Text('Continue your spiritual journey', style: AppTextStyles.bodyMedium),
+              const Text('Continue your spiritual journey', style: AppTextStyles.bodyMedium),
             ],
           ),
         ),
@@ -214,10 +214,10 @@ class HomeScreen extends StatelessWidget {
                 child: const Icon(Icons.menu_book_outlined, color: AppColors.primary, size: 20),
               ),
               const SizedBox(width: 12),
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Verse of the Day', style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+                  Text('Verse of the Day', style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark)),
                   Text('Bhagavad Gita 2.20', style: AppTextStyles.bodyMedium),
                 ],
               ),

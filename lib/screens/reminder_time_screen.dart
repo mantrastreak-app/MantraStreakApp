@@ -20,7 +20,7 @@ class ReminderTimeScreen extends StatefulWidget {
 
 class _ReminderTimeScreenState extends State<ReminderTimeScreen> {
   int _hour = 6;
-  int _minute = 0;
+  final int _minute = 0;
   bool _isAM = true;
 
   String get _timeString {
@@ -48,9 +48,9 @@ class _ReminderTimeScreenState extends State<ReminderTimeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Set your prayer time', style: AppTextStyles.displayMedium),
+                          const Text('Set your prayer time', style: AppTextStyles.displayMedium),
                           const SizedBox(height: 8),
-                          Text(
+                          const Text(
                             'When would you like to be reminded for daily prayers?',
                             style: AppTextStyles.bodyLarge,
                           ),

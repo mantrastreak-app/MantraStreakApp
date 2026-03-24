@@ -29,7 +29,7 @@ class SplashScreen extends StatelessWidget {
                           const Spacer(flex: 2),
                           const AppLogo(size: 96),
                           const SizedBox(height: 24),
-                          Text(
+                          const Text(
                             'Mantra Streak',
                             style: AppTextStyles.displayLarge,
                             textAlign: TextAlign.center,
@@ -52,7 +52,7 @@ class SplashScreen extends StatelessWidget {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 16),
-                          Text(
+                          const Text(
                             'Daily prayers and mantras for peace\nand devotion',
                             style: AppTextStyles.bodyLarge,
                             textAlign: TextAlign.center,
@@ -66,7 +66,7 @@ class SplashScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: AppColors.primaryBorder, width: 1),
                             ),
-                            child: Text(
+                            child: const Text(
                               '"These daily prayers bring peace and clarity to my mind"',
                               style: AppTextStyles.quoteText,
                               textAlign: TextAlign.center,
