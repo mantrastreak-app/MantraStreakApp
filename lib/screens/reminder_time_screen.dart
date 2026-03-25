@@ -20,7 +20,7 @@ class ReminderTimeScreen extends StatefulWidget {
 
 class _ReminderTimeScreenState extends State<ReminderTimeScreen> {
   int _hour = 6;
-  final int _minute = 0;
+  int _minute = 0;
   bool _isAM = true;
   bool _selectingHour = true; // true = dragging changes hour, false = minute
 
