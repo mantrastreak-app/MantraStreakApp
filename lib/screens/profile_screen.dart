@@ -522,8 +522,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final selected = _selectedDays.contains(day);
             return GestureDetector(
               onTap: () => setState(() {
-                if (selected) _selectedDays.remove(day);
-                else _selectedDays.add(day);
+                if (selected) {
+                  _selectedDays.remove(day);
+                } else {
+                  _selectedDays.add(day);
+                }
               }),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),

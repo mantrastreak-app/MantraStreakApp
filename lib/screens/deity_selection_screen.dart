@@ -53,9 +53,9 @@ class _DeitySelectionScreenState extends State<DeitySelectionScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Choose your deities', style: AppTextStyles.displayMedium),
+                          const Text('Choose your deities', style: AppTextStyles.displayMedium),
                           const SizedBox(height: 8),
-                          Text(
+                          const Text(
                             'Select the gods you wish to pray to daily',
                             style: AppTextStyles.bodyLarge,
                           ),

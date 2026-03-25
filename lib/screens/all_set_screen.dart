@@ -35,7 +35,7 @@ class AllSetScreen extends StatelessWidget {
                           children: [
                             _buildSuccessIcon(),
                             const SizedBox(height: 32),
-                            Text(
+                            const Text(
                               "You're all set!",
                               style: AppTextStyles.displayMedium,
                               textAlign: TextAlign.center,
@@ -74,10 +74,10 @@ class AllSetScreen extends StatelessWidget {
     return Container(
       width: 96,
       height: 96,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: AppGradients.allSetIcon,
         shape: BoxShape.circle,
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(color: Color(0x1A000000), blurRadius: 15, offset: Offset(0, 10)),
           BoxShadow(color: Color(0x0A000000), blurRadius: 6, offset: Offset(0, 4)),
         ],

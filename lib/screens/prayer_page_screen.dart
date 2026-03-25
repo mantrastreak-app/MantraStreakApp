@@ -36,10 +36,8 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
   // ── Audio player ──────────────────────────────────────────────────────────
   AudioPlayer? _audioPlayer;
   bool _audioReady = false;
-  bool _audioPlaying = false;
-  Duration _audioPosition = Duration.zero;
-  Duration _audioDuration = Duration.zero;
   bool _audioLoading = false;
+  bool _isMuted = false;
   String? _audioError;
   final List<StreamSubscription> _subs = [];
 
@@ -57,26 +55,9 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
     final player = AudioPlayer();
     _audioPlayer = player;
 
-    _subs.add(player.playerStateStream.listen((state) {
-      if (!mounted) return;
-      setState(() => _audioPlaying = state.playing);
-    }));
-
-    _subs.add(player.positionStream.listen((pos) {
-      if (!mounted) return;
-      setState(() => _audioPosition = pos);
-    }));
-
-    _subs.add(player.durationStream.listen((dur) {
-      if (!mounted) return;
-      setState(() => _audioDuration = dur ?? Duration.zero);
-    }));
-
     try {
       final resolvedUrl = await SupabaseService.resolveAudioUrl(url);
 
-      // Pass the Supabase Bearer token so ExoPlayer can fetch private-bucket
-      // objects. Public-bucket URLs simply ignore the extra header.
       final token = Supabase.instance.client.auth.currentSession?.accessToken;
       final headers = token != null
           ? {'Authorization': 'Bearer $token'}
@@ -90,45 +71,36 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
     } catch (e) {
       if (mounted) {
         setState(() {
-          _audioError = 'Could not load audio: $e';
+          _audioError = 'Could not load audio';
           _audioLoading = false;
         });
       }
     }
   }
 
-  void _toggleAudio() {
+  // ── Mute / unmute (audio playback is controlled by chanting session) ───────
+  void _toggleMute() {
     final player = _audioPlayer;
     if (player == null || !_audioReady) return;
-    if (_audioPlaying) {
-      player.pause();
-    } else {
-      player.play();
-    }
+    setState(() => _isMuted = !_isMuted);
+    player.setVolume(_isMuted ? 0.0 : 1.0);
   }
 
-  void _seekAudio(double value) {
-    final player = _audioPlayer;
-    if (player == null || !_audioReady || _audioDuration == Duration.zero) return;
-    player.seek(Duration(milliseconds: (value * _audioDuration.inMilliseconds).round()));
-  }
-
-  // ── Session timer ─────────────────────────────────────────────────────────
+  // ── Session timer + audio sync ─────────────────────────────────────────────
   String _formatTime(int seconds) {
     final m = (seconds ~/ 60).toString().padLeft(2, '0');
     final s = (seconds % 60).toString().padLeft(2, '0');
     return '$m:$s';
   }
 
-  String _formatDuration(Duration d) {
-    final m = d.inMinutes.toString().padLeft(2, '0');
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
   void _togglePlay() {
     setState(() => _isPlaying = !_isPlaying);
     if (_isPlaying) {
+      // Start audio when chanting starts
+      if (_audioReady) {
+        _audioPlayer?.setVolume(_isMuted ? 0.0 : 1.0);
+        _audioPlayer?.play();
+      }
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         setState(() {
           if (_elapsedSeconds < _totalSeconds) {
@@ -142,7 +114,9 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
         });
       });
     } else {
+      // Pause audio when chanting is paused
       _timer?.cancel();
+      _audioPlayer?.pause();
     }
   }
 
@@ -286,12 +260,12 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
       ),
       child: Column(
         children: [
-          // ── Audio player (hidden if no URL or failed to load) ──────────
+          // ── Audio mute bar (shown when audio is available) ─────────────
           if ((widget.prayer.audioUrl != null && widget.prayer.audioUrl!.isNotEmpty) &&
-              (_audioLoading || _audioReady))
-            _buildAudioSection(),
+              (_audioLoading || _audioReady || _audioError != null))
+            _buildAudioBar(),
 
-          // ── Session timer ─────────────────────────────────────────────
+          // ── Session timer ──────────────────────────────────────────────
           Text(
             _formatTime(_remaining),
             style: const TextStyle(
@@ -308,7 +282,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
             style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSubtle),
           ),
           const SizedBox(height: 20),
-          // ── Start / Pause chanting button ─────────────────────────────
+          // ── Start / Pause chanting button ──────────────────────────────
           GestureDetector(
             onTap: _togglePlay,
             child: Container(
@@ -350,90 +324,60 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
     );
   }
 
-  Widget _buildAudioSection() {
-    final sliderValue = (_audioDuration.inMilliseconds > 0)
-        ? (_audioPosition.inMilliseconds / _audioDuration.inMilliseconds).clamp(0.0, 1.0)
-        : 0.0;
-
+  Widget _buildAudioBar() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border, width: 1),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              const Icon(Icons.music_note_rounded, size: 14, color: AppColors.primary),
-              const SizedBox(width: 6),
-              const Text(
-                'MANTRA AUDIO',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSubtle,
-                  letterSpacing: 0.5,
-                ),
+          const Icon(Icons.music_note_rounded, size: 14, color: AppColors.primary),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'MANTRA AUDIO',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSubtle,
+                letterSpacing: 0.5,
               ),
-              const Spacer(),
-              if (_audioLoading)
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                )
-              else
-                GestureDetector(
-                  onTap: _toggleAudio,
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(
-                      gradient: AppGradients.primaryButton,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _audioPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+            ),
+          ),
+          if (_audioLoading)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+            )
+          else if (_audioError != null)
+            const Icon(Icons.signal_wifi_off_rounded, size: 18, color: AppColors.textSubtle)
+          else if (_audioReady)
+            GestureDetector(
+              onTap: _toggleMute,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _isMuted ? AppColors.surface : AppColors.primarySurface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _isMuted ? AppColors.border : AppColors.primaryBorder,
+                    width: 1.5,
                   ),
                 ),
-            ],
-          ),
-          if (_audioReady) ...[
-            const SizedBox(height: 4),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 3,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                activeTrackColor: AppColors.primary,
-                inactiveTrackColor: AppColors.border,
-                thumbColor: AppColors.primary,
-                overlayColor: AppColors.primarySurface,
-              ),
-              child: Slider(
-                value: sliderValue,
-                onChanged: _seekAudio,
+                child: Icon(
+                  _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                  color: _isMuted ? AppColors.textSubtle : AppColors.primary,
+                  size: 18,
+                ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(_formatDuration(_audioPosition), style: AppTextStyles.labelSmall),
-                  Text(_formatDuration(_audioDuration), style: AppTextStyles.labelSmall),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );

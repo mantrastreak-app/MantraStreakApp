@@ -18,7 +18,7 @@ class ReminderScreen extends StatefulWidget {
 class _ReminderScreenState extends State<ReminderScreen> {
   // Time state
   int _hour = 6;
-  int _minute = 0;
+  final int _minute = 0;
   bool _isAM = true;
 
   static const _days = [
@@ -51,9 +51,9 @@ class _ReminderScreenState extends State<ReminderScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // --- Time section ---
-                          Text('Set your prayer schedule', style: AppTextStyles.displayMedium),
+                          const Text('Set your prayer schedule', style: AppTextStyles.displayMedium),
                           const SizedBox(height: 8),
-                          Text(
+                          const Text(
                             'Choose when and which days you want to be reminded',
                             style: AppTextStyles.bodyLarge,
                           ),

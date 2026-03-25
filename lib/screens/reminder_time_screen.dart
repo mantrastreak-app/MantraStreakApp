@@ -22,13 +22,38 @@ class _ReminderTimeScreenState extends State<ReminderTimeScreen> {
   int _hour = 6;
   int _minute = 0;
   bool _isAM = true;
+  bool _selectingHour = true; // true = dragging changes hour, false = minute
 
-  String get _timeString {
-    return '${_hour.toString().padLeft(2, '0')}:${_minute.toString().padLeft(2, '0')}';
-  }
+  final GlobalKey _clockKey = GlobalKey();
 
-  double get _hourAngle => (_hour % 12 + _minute / 60) / 12 * 2 * math.pi - math.pi / 2;
+  String get _timeString =>
+      '${_hour.toString().padLeft(2, '0')}:${_minute.toString().padLeft(2, '0')}';
+
+  double get _hourAngle =>
+      (_hour % 12 + _minute / 60) / 12 * 2 * math.pi - math.pi / 2;
   double get _minuteAngle => _minute / 60 * 2 * math.pi - math.pi / 2;
+
+  void _handleClockPan(DragUpdateDetails details) {
+    final clockCtx = _clockKey.currentContext;
+    if (clockCtx == null) return;
+
+    final box = clockCtx.findRenderObject() as RenderBox;
+    final centerLocal = Offset(box.size.width / 2, box.size.height / 2);
+    final centerGlobal = box.localToGlobal(centerLocal);
+    final touch = details.globalPosition;
+
+    final angle = math.atan2(touch.dy - centerGlobal.dy, touch.dx - centerGlobal.dx);
+    final normalized = (angle + math.pi / 2 + 2 * math.pi) % (2 * math.pi);
+
+    setState(() {
+      if (_selectingHour) {
+        final raw = (normalized / (2 * math.pi) * 12).round() % 12;
+        _hour = raw == 0 ? 12 : raw;
+      } else {
+        _minute = (normalized / (2 * math.pi) * 60).round() % 60;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +73,9 @@ class _ReminderTimeScreenState extends State<ReminderTimeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Set your prayer time', style: AppTextStyles.displayMedium),
+                          const Text('Set your prayer time', style: AppTextStyles.displayMedium),
                           const SizedBox(height: 8),
-                          Text(
+                          const Text(
                             'When would you like to be reminded for daily prayers?',
                             style: AppTextStyles.bodyLarge,
                           ),
@@ -58,6 +83,13 @@ class _ReminderTimeScreenState extends State<ReminderTimeScreen> {
                           Center(child: _buildClock()),
                           const SizedBox(height: 24),
                           Center(child: _buildTimeDisplay()),
+                          const SizedBox(height: 8),
+                          Center(
+                            child: Text(
+                              _selectingHour ? 'Drag to set hour' : 'Drag to set minute',
+                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSubtle),
+                            ),
+                          ),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -116,36 +148,67 @@ class _ReminderTimeScreenState extends State<ReminderTimeScreen> {
 
   Widget _buildClock() {
     return GestureDetector(
-      onPanUpdate: (details) {
-        final RenderBox box = context.findRenderObject() as RenderBox;
-        final center = Offset(box.size.width / 2, 280);
-        final touchPos = details.globalPosition;
-        final angle = math.atan2(touchPos.dy - center.dy, touchPos.dx - center.dx);
-        final normalizedAngle = (angle + math.pi / 2 + 2 * math.pi) % (2 * math.pi);
-        final newHour = (normalizedAngle / (2 * math.pi) * 12).round() % 12;
-        setState(() => _hour = newHour == 0 ? 12 : newHour);
-      },
+      key: _clockKey,
+      onPanUpdate: _handleClockPan,
       child: CustomPaint(
         size: const Size(260, 260),
         painter: _ClockPainter(
           hourAngle: _hourAngle,
           minuteAngle: _minuteAngle,
+          selectingHour: _selectingHour,
         ),
       ),
     );
   }
 
   Widget _buildTimeDisplay() {
+    const baseStyle = TextStyle(
+      fontFamily: 'Inter',
+      fontSize: 48,
+      fontWeight: FontWeight.w700,
+    );
+
     return Column(
       children: [
-        Text(
-          _timeString,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 48,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // HH — tap to switch to hour-selection mode
+            GestureDetector(
+              onTap: () => setState(() => _selectingHour = true),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _selectingHour ? AppColors.primarySurface : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _hour.toString().padLeft(2, '0'),
+                  style: baseStyle.copyWith(
+                    color: _selectingHour ? AppColors.primary : AppColors.textDark,
+                  ),
+                ),
+              ),
+            ),
+            Text(':', style: baseStyle.copyWith(color: AppColors.textDark)),
+            // MM — tap to switch to minute-selection mode
+            GestureDetector(
+              onTap: () => setState(() => _selectingHour = false),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: !_selectingHour ? AppColors.primarySurface : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _minute.toString().padLeft(2, '0'),
+                  style: baseStyle.copyWith(
+                    color: !_selectingHour ? AppColors.primary : AppColors.textDark,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Row(
@@ -195,8 +258,13 @@ class _AmPmButton extends StatelessWidget {
 class _ClockPainter extends CustomPainter {
   final double hourAngle;
   final double minuteAngle;
+  final bool selectingHour;
 
-  _ClockPainter({required this.hourAngle, required this.minuteAngle});
+  _ClockPainter({
+    required this.hourAngle,
+    required this.minuteAngle,
+    required this.selectingHour,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -227,15 +295,11 @@ class _ClockPainter extends CustomPainter {
       final innerRadius = isHour ? radius * 0.82 : radius * 0.88;
       final outerRadius = radius * 0.94;
 
-      final p1 = Offset(
-        center.dx + innerRadius * math.cos(angle),
-        center.dy + innerRadius * math.sin(angle),
+      canvas.drawLine(
+        Offset(center.dx + innerRadius * math.cos(angle), center.dy + innerRadius * math.sin(angle)),
+        Offset(center.dx + outerRadius * math.cos(angle), center.dy + outerRadius * math.sin(angle)),
+        markerPaint,
       );
-      final p2 = Offset(
-        center.dx + outerRadius * math.cos(angle),
-        center.dy + outerRadius * math.sin(angle),
-      );
-      canvas.drawLine(p1, p2, markerPaint);
     }
 
     // Hour numbers
@@ -250,44 +314,35 @@ class _ClockPainter extends CustomPainter {
       );
       textPainter.text = TextSpan(
         text: hours[i],
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Inter',
           fontSize: 12,
-          color: AppColors.textMedium,
+          color: selectingHour ? AppColors.textMedium : AppColors.textPale,
         ),
       );
       textPainter.layout();
-      textPainter.paint(
-        canvas,
-        pos - Offset(textPainter.width / 2, textPainter.height / 2),
-      );
+      textPainter.paint(canvas, pos - Offset(textPainter.width / 2, textPainter.height / 2));
     }
 
-    // Minute hand
+    // Minute hand — highlighted when selecting minutes
     final minutePaint = Paint()
-      ..color = AppColors.border
-      ..strokeWidth = 2.5
+      ..color = selectingHour ? AppColors.border : AppColors.primary
+      ..strokeWidth = selectingHour ? 2.5 : 3.5
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(
       center,
-      Offset(
-        center.dx + radius * 0.6 * math.cos(minuteAngle),
-        center.dy + radius * 0.6 * math.sin(minuteAngle),
-      ),
+      Offset(center.dx + radius * 0.6 * math.cos(minuteAngle), center.dy + radius * 0.6 * math.sin(minuteAngle)),
       minutePaint,
     );
 
-    // Hour hand
+    // Hour hand — highlighted when selecting hours
     final hourPaint = Paint()
-      ..color = AppColors.primary
-      ..strokeWidth = 3.5
+      ..color = selectingHour ? AppColors.primary : AppColors.border
+      ..strokeWidth = selectingHour ? 3.5 : 2.5
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(
       center,
-      Offset(
-        center.dx + radius * 0.45 * math.cos(hourAngle),
-        center.dy + radius * 0.45 * math.sin(hourAngle),
-      ),
+      Offset(center.dx + radius * 0.45 * math.cos(hourAngle), center.dy + radius * 0.45 * math.sin(hourAngle)),
       hourPaint,
     );
 
@@ -297,6 +352,8 @@ class _ClockPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ClockPainter oldDelegate) =>
-      oldDelegate.hourAngle != hourAngle || oldDelegate.minuteAngle != minuteAngle;
+  bool shouldRepaint(_ClockPainter old) =>
+      old.hourAngle != hourAngle ||
+      old.minuteAngle != minuteAngle ||
+      old.selectingHour != selectingHour;
 }

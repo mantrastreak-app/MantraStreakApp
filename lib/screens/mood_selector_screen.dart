@@ -64,7 +64,7 @@ class _MoodSelectorScreenState extends State<MoodSelectorScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          Text(
+                          const Text(
                             'Choose a mood to personalize your prayer',
                             style: AppTextStyles.bodyLarge,
                             textAlign: TextAlign.center,
