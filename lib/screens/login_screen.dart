@@ -193,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(height: 6),
                             _buildEmailField(),
                             const SizedBox(height: 16),
-                            _buildLabel('Password'),
+                            _buildLabel(_isSignUp ? 'Set Password' : 'Password'),
                             const SizedBox(height: 6),
                             _buildPasswordField(),
                             if (!_isSignUp) ...[

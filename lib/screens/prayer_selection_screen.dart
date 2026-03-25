@@ -121,6 +121,40 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
     _load();
   }
 
+  static String _headlineFor(String mood) {
+    switch (mood.toLowerCase()) {
+      case 'awesome':
+        return "You're radiating joy today!";
+      case 'good':
+        return "Great energy — let's elevate it";
+      case 'neutral':
+        return "Stillness is sacred too";
+      case 'bad':
+        return "We're here to ease your heart";
+      case 'terrible':
+        return "You are not alone in this";
+      default:
+        return "We're here to support you";
+    }
+  }
+
+  static String _subtitleFor(String mood) {
+    switch (mood.toLowerCase()) {
+      case 'awesome':
+        return 'Channel that beautiful energy into a mantra that amplifies your light';
+      case 'good':
+        return 'Choose a mantra to deepen this positive moment and carry it with you';
+      case 'neutral':
+        return 'Let a mantra gently guide you back to your centre — no rush, just peace';
+      case 'bad':
+        return 'It\'s okay to not be okay. Pick a mantra that brings comfort and calm';
+      case 'terrible':
+        return 'Every storm passes. Let a sacred mantra hold you through this moment';
+      default:
+        return 'Choose a prayer or mantra that resonates with you';
+    }
+  }
+
   Future<void> _load() async {
     try {
       final rows = await SupabaseService.fetchMantrasByMood(widget.mood);
@@ -165,9 +199,9 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            "We're here to support you",
-                            style: TextStyle(
+                          Text(
+                            _headlineFor(widget.mood),
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 30,
                               fontWeight: FontWeight.w600,
@@ -176,8 +210,8 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Choose a prayer or mantra that resonates with you',
+                          Text(
+                            _subtitleFor(widget.mood),
                             style: AppTextStyles.bodyLarge,
                           ),
                           const SizedBox(height: 24),

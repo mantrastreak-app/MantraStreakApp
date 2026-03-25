@@ -1,5 +1,8 @@
+import 'dart:async';
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/app_state.dart';
 import 'services/supabase_service.dart';
 import 'screens/splash_screen.dart';
@@ -9,6 +12,7 @@ import 'screens/deity_selection_screen.dart';
 import 'screens/enable_notifications_screen.dart';
 import 'screens/reminder_screen.dart';
 import 'screens/all_set_screen.dart';
+import 'screens/onboarding_complete_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/mood_selector_screen.dart';
@@ -16,8 +20,9 @@ import 'screens/prayer_selection_screen.dart';
 import 'screens/prayer_page_screen.dart';
 import 'screens/monthly_dashboard_screen.dart';
 import 'screens/otp_verification_screen.dart';
+import 'screens/reset_password_screen.dart';
 
-// Onboarding: splash → education → login → otpVerification → deitySelection → enableNotifications → reminder → allSet → home
+// Onboarding: splash → education → login → otpVerification → deitySelection → enableNotifications → reminder → allSet → onboardingComplete → home
 // Main app:   home ↔ profile, moodSelector → prayerSelection → prayerPage, home ↔ monthlyDashboard
 enum AppRoute {
   splash,
@@ -28,12 +33,14 @@ enum AppRoute {
   enableNotifications,
   reminder,
   allSet,
+  onboardingComplete,
   home,
   profile,
   moodSelector,
   prayerSelection,
   prayerPage,
   monthlyDashboard,
+  resetPassword,
 }
 
 class AppRouter extends StatefulWidget {
@@ -50,15 +57,64 @@ class _AppRouterState extends State<AppRouter> {
   bool _signInMode = false; // true after logout → show sign-in, not sign-up
   String? _pendingOtpEmail;
 
+  // Deep link / auth state subscriptions
+  StreamSubscription<Uri>? _linkSub;
+  StreamSubscription<AuthState>? _authSub;
+
   @override
   void initState() {
     super.initState();
+
     if (SupabaseService.isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await context.read<AppState>().loadUserData();
         _navigate(AppRoute.home);
       });
     }
+
+    _initDeepLinks();
+    _initAuthStateListener();
+  }
+
+  // ── Deep link handling (for Supabase password reset emails) ───────────────
+  void _initDeepLinks() {
+    final appLinks = AppLinks();
+
+    // Handle link that launched the app from a cold start
+    appLinks.getInitialAppLink().then((uri) {
+      if (uri != null) _handleIncomingLink(uri);
+    });
+
+    // Handle links while the app is running
+    _linkSub = appLinks.uriLinkStream.listen(
+      _handleIncomingLink,
+      onError: (_) {},
+    );
+  }
+
+  Future<void> _handleIncomingLink(Uri uri) async {
+    if (uri.scheme != 'com.mantrastreak.app') return;
+    try {
+      // supabase_flutter parses the fragment and sets the session
+      await Supabase.instance.client.auth.getSessionFromUrl(uri);
+      // The auth state listener will fire with passwordRecovery
+    } catch (_) {}
+  }
+
+  // ── Auth state change listener ────────────────────────────────────────────
+  void _initAuthStateListener() {
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.passwordRecovery) {
+        if (mounted) _navigate(AppRoute.resetPassword);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _linkSub?.cancel();
+    _authSub?.cancel();
+    super.dispose();
   }
 
   void _navigate(AppRoute route) => setState(() => _currentRoute = route);
@@ -139,10 +195,16 @@ class _AppRouterState extends State<AppRouter> {
           key: const ValueKey(AppRoute.allSet),
           onContinue: () {
             state.saveProfile();
-            _navigate(AppRoute.home);
+            _navigate(AppRoute.onboardingComplete);
           },
           daysPerWeek: state.selectedDays.length,
           deitiesSelected: state.selectedDeities.length,
+        );
+
+      case AppRoute.onboardingComplete:
+        return OnboardingCompleteScreen(
+          key: const ValueKey(AppRoute.onboardingComplete),
+          onContinue: () => _navigate(AppRoute.home),
         );
 
       case AppRoute.home:
@@ -208,6 +270,12 @@ class _AppRouterState extends State<AppRouter> {
           totalDays: state.totalPrayerDays,
           completedDays: state.completedDays,
           onClose: () => _navigate(AppRoute.home),
+        );
+
+      case AppRoute.resetPassword:
+        return ResetPasswordScreen(
+          key: const ValueKey(AppRoute.resetPassword),
+          onPasswordReset: () => _navigate(AppRoute.home),
         );
     }
   }
