@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/supabase_service.dart';
 
 class AppState extends ChangeNotifier {
@@ -19,6 +20,13 @@ class AppState extends ChangeNotifier {
   String? selectedPrayer;
   String? selectedPrayerDeity;
   int? selectedPrayerDuration;
+
+  // Favourite mantras (persisted locally)
+  // Each entry stores just enough data to render a compact card.
+  List<Map<String, dynamic>> favouriteMantraCards = [];
+
+  bool isFavourite(String mantraId) =>
+      favouriteMantraCards.any((m) => m['id'] == mantraId);
 
   // Loading state for async operations
   bool isLoading = false;
@@ -57,6 +65,45 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Favourites ────────────────────────────────────────────────────────────
+
+  Future<void> loadFavourites() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = prefs.getStringList('fav_ids') ?? [];
+    final List<Map<String, dynamic>> loaded = [];
+    for (final id in ids) {
+      final title = prefs.getString('fav_${id}_title') ?? '';
+      final deity = prefs.getString('fav_${id}_deity') ?? '';
+      final transliteration = prefs.getString('fav_${id}_transliteration') ?? '';
+      loaded.add({'id': id, 'title': title, 'deity': deity, 'transliteration': transliteration});
+    }
+    favouriteMantraCards = loaded;
+    notifyListeners();
+  }
+
+  Future<void> toggleFavourite({
+    required String id,
+    required String title,
+    required String deity,
+    required String transliteration,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (isFavourite(id)) {
+      favouriteMantraCards.removeWhere((m) => m['id'] == id);
+      await prefs.remove('fav_${id}_title');
+      await prefs.remove('fav_${id}_deity');
+      await prefs.remove('fav_${id}_transliteration');
+    } else {
+      favouriteMantraCards.add({'id': id, 'title': title, 'deity': deity, 'transliteration': transliteration});
+      await prefs.setString('fav_${id}_title', title);
+      await prefs.setString('fav_${id}_deity', deity);
+      await prefs.setString('fav_${id}_transliteration', transliteration);
+    }
+    final ids = favouriteMantraCards.map((m) => m['id'] as String).toList();
+    await prefs.setStringList('fav_ids', ids);
+    notifyListeners();
+  }
+
   void setMood(String mood) {
     selectedMood = mood;
     notifyListeners();
@@ -75,7 +122,7 @@ class AppState extends ChangeNotifier {
     if (!SupabaseService.isAuthenticated) return;
     _setLoading(true);
     try {
-      await Future.wait([_loadProfile(), _loadStreaks(), _loadCompletedDays()]);
+      await Future.wait([_loadProfile(), _loadStreaks(), _loadCompletedDays(), loadFavourites()]);
     } catch (e) {
       errorMessage = e.toString();
     } finally {
@@ -187,6 +234,7 @@ class AppState extends ChangeNotifier {
     selectedPrayer = null;
     selectedPrayerDeity = null;
     selectedPrayerDuration = null;
+    favouriteMantraCards = [];
     errorMessage = null;
     notifyListeners();
   }
