@@ -42,7 +42,7 @@ class AllSetScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'Your spiritual journey begins now',
+                              'Everything is set up for your practice',
                               style: AppTextStyles.bodyLarge.copyWith(fontSize: 18),
                               textAlign: TextAlign.center,
                             ),

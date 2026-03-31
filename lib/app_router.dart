@@ -7,6 +7,7 @@ import 'models/app_state.dart';
 import 'services/supabase_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/education_screen.dart';
+import 'screens/chanting_stats_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/deity_selection_screen.dart';
 import 'screens/enable_notifications_screen.dart';
@@ -22,11 +23,12 @@ import 'screens/monthly_dashboard_screen.dart';
 import 'screens/otp_verification_screen.dart';
 import 'screens/reset_password_screen.dart';
 
-// Onboarding: splash → education → login → otpVerification → deitySelection → enableNotifications → reminder → allSet → onboardingComplete → home
+// Onboarding: splash → education → chantingStats → login → otpVerification → deitySelection → enableNotifications → reminder → allSet → onboardingComplete → home
 // Main app:   home ↔ profile, moodSelector → prayerSelection → prayerPage, home ↔ monthlyDashboard
 enum AppRoute {
   splash,
   education,
+  chantingStats,
   login,
   otpVerification,
   deitySelection,
@@ -67,8 +69,9 @@ class _AppRouterState extends State<AppRouter> {
 
     if (SupabaseService.isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await context.read<AppState>().loadUserData();
-        _navigate(AppRoute.home);
+        final state = context.read<AppState>();
+        await Future.wait([state.loadUserData(), state.loadFavourites()]);
+        if (mounted) _navigate(AppRoute.home);
       });
     }
 
@@ -144,6 +147,12 @@ class _AppRouterState extends State<AppRouter> {
       case AppRoute.education:
         return EducationScreen(
           key: const ValueKey(AppRoute.education),
+          onContinue: () => _navigate(AppRoute.chantingStats),
+        );
+
+      case AppRoute.chantingStats:
+        return ChantingStatsScreen(
+          key: const ValueKey(AppRoute.chantingStats),
           onContinue: () => _navigate(AppRoute.login),
         );
 

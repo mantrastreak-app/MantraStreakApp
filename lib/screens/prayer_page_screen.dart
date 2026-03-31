@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:just_audio/just_audio.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../services/supabase_service.dart';
@@ -79,11 +81,14 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
   }
 
   // ── Mute / unmute (audio playback is controlled by chanting session) ───────
-  void _toggleMute() {
+  Future<void> _toggleMute() async {
     final player = _audioPlayer;
     if (player == null || !_audioReady) return;
-    setState(() => _isMuted = !_isMuted);
-    player.setVolume(_isMuted ? 0.0 : 1.0);
+    // Compute the new state before calling setState so the volume call
+    // always uses the correct (intended) value.
+    final newMuted = !_isMuted;
+    setState(() => _isMuted = newMuted);
+    await player.setVolume(newMuted ? 0.0 : 1.0);
   }
 
   // ── Session timer + audio sync ─────────────────────────────────────────────
@@ -169,21 +174,51 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
   }
 
   Widget _buildPrayerHeader() {
+    final appState = context.watch<AppState>();
+    final isFav = appState.isFavourite(widget.prayer.id);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.prayer.title, style: AppTextStyles.titleLarge),
-              Text(
-                widget.prayer.deity.isEmpty ? 'Universal' : widget.prayer.deity,
-                style: AppTextStyles.bodyMedium,
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.prayer.title, style: AppTextStyles.titleLarge),
+                Text(
+                  widget.prayer.deity.isEmpty ? 'Universal' : widget.prayer.deity,
+                  style: AppTextStyles.bodyMedium,
+                ),
+              ],
+            ),
           ),
+          // Favourite toggle
+          GestureDetector(
+            onTap: () => appState.toggleFavourite(
+              id: widget.prayer.id,
+              title: widget.prayer.title,
+              deity: widget.prayer.deity,
+              transliteration: widget.prayer.transliteration,
+            ),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isFav ? AppColors.primarySurface : AppColors.surface,
+                shape: BoxShape.circle,
+                border: isFav ? Border.all(color: AppColors.primaryBorder, width: 1.5) : null,
+              ),
+              child: Icon(
+                isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                color: isFav ? AppColors.primary : AppColors.textSubtle,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Close
           GestureDetector(
             onTap: widget.onClose,
             child: Container(
