@@ -34,43 +34,31 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
   static const _stats = [
     _Stat(
       emoji: '🧠',
-      headline: 'Calms your neurons',
-      body: 'Daily chanting reduces activity in the amygdala — the brain\'s stress centre — '
-          'with studies showing up to a\u00a031%\u00a0reduction in anxiety scores.',
-      source: 'International Journal of Yoga, 2016',
-      color: Color(0xFFEDE9FE),
-      borderColor: Color(0xFFC4B5FD),
-      emojiColor: Color(0xFF7C3AED),
+      stat: '31%',
+      headline: 'less anxiety',
+      body: 'Reduces amygdala activity — your brain\'s stress centre.',
+      source: 'Int\'l Journal of Yoga, 2016',
     ),
     _Stat(
       emoji: '📉',
-      headline: 'Lowers stress hormones',
-      body: 'Regular mantra practice measurably reduces cortisol — the primary stress hormone — '
-          'by up to\u00a023%\u00a0with consistent daily practice.',
+      stat: '23%',
+      headline: 'lower cortisol',
+      body: 'Measurably cuts the stress hormone with daily practice.',
       source: 'Harvard Mind-Body Medical Institute',
-      color: Color(0xFFFFF7ED),
-      borderColor: Color(0xFFFED7AA),
-      emojiColor: Color(0xFFEA580C),
     ),
     _Stat(
       emoji: '⚡',
-      headline: 'Sharpens your focus',
-      body: 'Just 10\u00a0minutes of mantra meditation increases alpha brain waves by up to\u00a040% '
-          '— the same waves linked to calm alertness and sharper thinking.',
+      stat: '40%',
+      headline: 'more alpha waves',
+      body: 'Boosts the calm-focus brain frequency in minutes.',
       source: 'Neurological research on meditative states',
-      color: Color(0xFFFEFCE8),
-      borderColor: Color(0xFFFDE68A),
-      emojiColor: Color(0xFFD97706),
     ),
     _Stat(
       emoji: '❤️',
-      headline: 'Supports your heart',
-      body: 'Chanting synchronises breath and heartbeat, improving heart rate variability — '
-          'one of the strongest measurable markers of long-term cardiovascular health.',
-      source: 'Journal of Alternative and Complementary Medicine',
-      color: Color(0xFFFFF1F2),
-      borderColor: Color(0xFFFECACA),
-      emojiColor: Color(0xFFDC2626),
+      stat: '↑ HRV',
+      headline: 'healthier heart',
+      body: 'Improves heart rate variability — a key longevity marker.',
+      source: 'J. of Alt. and Complementary Medicine',
     ),
   ];
 
@@ -214,21 +202,17 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
 
 class _Stat {
   final String emoji;
+  final String stat;
   final String headline;
   final String body;
   final String source;
-  final Color color;
-  final Color borderColor;
-  final Color emojiColor;
 
   const _Stat({
     required this.emoji,
+    required this.stat,
     required this.headline,
     required this.body,
     required this.source,
-    required this.color,
-    required this.borderColor,
-    required this.emojiColor,
   });
 }
 
@@ -283,69 +267,74 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
-        color: stat.color,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: stat.borderColor, width: 1.5),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Emoji badge
+          // Emoji badge — uniform style, accent only on the emoji itself
           Container(
-            width: 44,
-            height: 44,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: stat.borderColor, width: 1),
+              color: AppColors.primarySurface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.primaryBorder, width: 1),
             ),
             child: Center(
-              child: Text(stat.emoji, style: const TextStyle(fontSize: 22)),
+              child: Text(stat.emoji, style: const TextStyle(fontSize: 24)),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  stat.headline,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: stat.emojiColor,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  stat.body,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
-                    height: 1.55,
-                    color: AppColors.textMedium,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.info_outline_rounded, size: 11, color: AppColors.textPale),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        stat.source,
+                // Big stat number + label on same line
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${stat.stat} ',
                         style: const TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 11,
-                          color: AppColors.textPale,
-                          fontStyle: FontStyle.italic,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
                         ),
                       ),
-                    ),
-                  ],
+                      TextSpan(
+                        text: stat.headline,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  stat.body,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textMedium,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  stat.source,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: AppColors.textPale,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ],
             ),
