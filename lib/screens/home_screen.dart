@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/app_logo.dart';
@@ -22,6 +24,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final favourites = context.watch<AppState>().favouriteMantraCards;
+
     return Scaffold(
       body: AppBackground(
         child: SafeArea(
@@ -42,6 +46,10 @@ class HomeScreen extends StatelessWidget {
                             const SizedBox(height: 24),
                             _buildStreakCard(),
                             const SizedBox(height: 24),
+                            if (favourites.isNotEmpty) ...[
+                              _buildFavouritesSection(favourites),
+                              const SizedBox(height: 24),
+                            ],
                             _buildVerseCard(),
                             const SizedBox(height: 24),
                           ],
@@ -80,7 +88,6 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
-        // Profile icon — top right
         GestureDetector(
           onTap: onProfile,
           child: Container(
@@ -134,7 +141,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              // Dashboard icon — now tappable
               GestureDetector(
                 onTap: onViewDashboard,
                 child: Container(
@@ -190,6 +196,34 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildFavouritesSection(List<Map<String, dynamic>> favourites) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.favorite_rounded, color: AppColors.primary, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Favourite Mantras',
+              style: AppTextStyles.titleMedium.copyWith(fontSize: 17),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 96,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: favourites.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, i) => _FavouriteCard(data: favourites[i]),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildVerseCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -232,7 +266,6 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 20),
           const Divider(color: AppColors.primaryBorder),
           const SizedBox(height: 12),
-          // Audio icon removed — Sanskrit text only
           const Text(
             'न जायते म्रियते वा कदाचित्',
             style: TextStyle(
@@ -240,6 +273,74 @@ class HomeScreen extends StatelessWidget {
               fontSize: 14,
               color: AppColors.textSubtle,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FavouriteCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+
+  const _FavouriteCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primarySurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primaryBorder, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.favorite_rounded, color: AppColors.primary, size: 13),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  data['deity'] as String? ?? '',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.primaryDark,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Text(
+            data['title'] as String? ?? '',
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 3),
+          Text(
+            data['transliteration'] as String? ?? '',
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: AppColors.textSubtle,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

@@ -67,8 +67,9 @@ class _AppRouterState extends State<AppRouter> {
 
     if (SupabaseService.isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await context.read<AppState>().loadUserData();
-        _navigate(AppRoute.home);
+        final state = context.read<AppState>();
+        await Future.wait([state.loadUserData(), state.loadFavourites()]);
+        if (mounted) _navigate(AppRoute.home);
       });
     }
 
