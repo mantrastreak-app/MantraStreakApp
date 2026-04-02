@@ -291,7 +291,12 @@ class _AppRouterState extends State<AppRouter> {
           prayer: _selectedPrayer!,
           onClose: () => _navigate(AppRoute.home),
           onComplete: () {
-            state.completePrayer();
+            state.completePrayer(
+              mantraId: _selectedPrayer?.id ?? '',
+              countAchieved: 0,
+              targetCount: 108,
+              sessionMode: 'timer',
+            );
             _navigate(AppRoute.home);
           },
         );

@@ -293,15 +293,27 @@ class _FavouriteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final todayCount = context.watch<AppState>().todayCountFor(
+      data['id'] as String? ?? '',
+    );
+    final hasProgress = todayCount > 0;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
       width: 150,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primarySurface,
+        color: hasProgress
+            ? AppColors.primarySurface
+            : AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primaryBorder, width: 1.5),
+        border: Border.all(
+          color: hasProgress
+              ? AppColors.primaryBorder
+              : AppColors.border,
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,7 +321,13 @@ class _FavouriteCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.favorite_rounded, color: AppColors.primary, size: 13),
+              Icon(
+                hasProgress
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                color: AppColors.primary,
+                size: 13,
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -338,18 +356,29 @@ class _FavouriteCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 3),
-          Text(
-            data['transliteration'] as String? ?? '',
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 11,
-              fontStyle: FontStyle.italic,
-              color: AppColors.textSubtle,
+          const SizedBox(height: 4),
+          if (hasProgress)
+            Text(
+              'Today: $todayCount chants ✓',
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            )
+          else
+            Text(
+              data['transliteration'] as String? ?? '',
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                color: AppColors.textSubtle,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
         ],
       ),
       ),

@@ -185,6 +185,20 @@ class SupabaseService {
     });
   }
 
+  // Fetch all of today's sessions for this user
+  // Returns a list of maps with mantra_id and count_achieved
+  static Future<List<Map<String, dynamic>>> loadTodaysSessions() async {
+    final userId = currentUser?.id;
+    if (userId == null) return [];
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final response = await _client
+        .from('prayer_sessions')
+        .select('mantra_id, count_achieved')
+        .eq('user_id', userId)
+        .eq('completed_at', today);
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
   static Future<Map<String, int>> loadTodayProgressForMantra(
       String mantraId) async {
     final userId = currentUser?.id;

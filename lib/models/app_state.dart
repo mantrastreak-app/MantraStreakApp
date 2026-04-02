@@ -25,12 +25,17 @@ class AppState extends ChangeNotifier {
   int currentSessionTarget = 108;
   String currentSessionMode = 'timer';
 
+  // Today's chant progress — mantraId → count chanted today
+  Map<String, int> todayChantCounts = {};
+
   // Favourite mantras (persisted locally)
   // Each entry stores just enough data to render a compact card.
   List<Map<String, dynamic>> favouriteMantraCards = [];
 
   bool isFavourite(String mantraId) =>
       favouriteMantraCards.any((m) => m['id'] == mantraId);
+
+  int todayCountFor(String mantraId) => todayChantCounts[mantraId] ?? 0;
 
   // Loading state for async operations
   bool isLoading = false;
@@ -126,7 +131,7 @@ class AppState extends ChangeNotifier {
     if (!SupabaseService.isAuthenticated) return;
     _setLoading(true);
     try {
-      await Future.wait([_loadProfile(), _loadStreaks(), _loadCompletedDays(), loadFavourites()]);
+      await Future.wait([_loadProfile(), _loadStreaks(), _loadCompletedDays(), loadFavourites(), _loadTodayProgress()]);
     } catch (e) {
       errorMessage = e.toString();
     } finally {
@@ -157,6 +162,20 @@ class AppState extends ChangeNotifier {
     completedDays = await SupabaseService.loadCompletedDays();
   }
 
+  Future<void> _loadTodayProgress() async {
+    final sessions = await SupabaseService.loadTodaysSessions();
+    final Map<String, int> counts = {};
+    for (final session in sessions) {
+      final id = session['mantra_id'] as String? ?? '';
+      final count = session['count_achieved'] as int? ?? 0;
+      if (id.isNotEmpty) {
+        counts[id] = (counts[id] ?? 0) + count;
+      }
+    }
+    todayChantCounts = counts;
+    notifyListeners();
+  }
+
   // -------------------------------------------------------------------------
   // Supabase: persist onboarding settings
   // -------------------------------------------------------------------------
@@ -181,13 +200,16 @@ class AppState extends ChangeNotifier {
   // -------------------------------------------------------------------------
 
   Future<void> completePrayer({
+    String mantraId = '',
     int countAchieved = 0,
     int targetCount = 108,
     String sessionMode = 'timer',
   }) async {
-    currentSessionCount = countAchieved;
-    currentSessionTarget = targetCount;
-    currentSessionMode = sessionMode;
+    // Update in-memory progress immediately so UI reflects it instantly
+    if (mantraId.isNotEmpty) {
+      todayChantCounts[mantraId] =
+          (todayChantCounts[mantraId] ?? 0) + countAchieved;
+    }
 
     final today = DateTime.now();
     final dateOnly = DateTime(today.year, today.month, today.day);
@@ -197,33 +219,33 @@ class AppState extends ChangeNotifier {
       totalPrayerDays++;
       prayerStreak++;
       if (prayerStreak > bestStreak) bestStreak = prayerStreak;
-      notifyListeners();
+    }
+    notifyListeners();
 
-      if (SupabaseService.isAuthenticated) {
-        try {
-          await Future.wait([
-            SupabaseService.logPrayerSession(
-              completedAt: dateOnly,
-              prayerTitle: selectedPrayer ?? '',
-              mantraId: selectedPrayerMantraId ?? '',
-              deity: selectedPrayerDeity ?? '',
-              mood: selectedMood ?? '',
-              durationMinutes: selectedPrayerDuration ?? 0,
-              countAchieved: countAchieved,
-              targetCount: targetCount,
-              sessionMode: sessionMode,
-            ),
-            SupabaseService.saveStreaks(
-              currentStreak: prayerStreak,
-              bestStreak: bestStreak,
-              totalPrayerDays: totalPrayerDays,
-              lastPrayerDate: dateOnly,
-            ),
-          ]);
-        } catch (e) {
-          errorMessage = e.toString();
-          notifyListeners();
-        }
+    if (SupabaseService.isAuthenticated) {
+      try {
+        await Future.wait([
+          SupabaseService.logPrayerSession(
+            completedAt: dateOnly,
+            prayerTitle: selectedPrayer ?? '',
+            mantraId: mantraId,
+            deity: selectedPrayerDeity ?? '',
+            mood: selectedMood ?? '',
+            durationMinutes: selectedPrayerDuration ?? 0,
+            countAchieved: countAchieved,
+            targetCount: targetCount,
+            sessionMode: sessionMode,
+          ),
+          SupabaseService.saveStreaks(
+            currentStreak: prayerStreak,
+            bestStreak: bestStreak,
+            totalPrayerDays: totalPrayerDays,
+            lastPrayerDate: dateOnly,
+          ),
+        ]);
+      } catch (e) {
+        errorMessage = e.toString();
+        notifyListeners();
       }
     }
   }
@@ -251,6 +273,7 @@ class AppState extends ChangeNotifier {
     selectedPrayerDeity = null;
     selectedPrayerDuration = null;
     selectedPrayerMantraId = null;
+    todayChantCounts = {};
     favouriteMantraCards = [];
     errorMessage = null;
     notifyListeners();
