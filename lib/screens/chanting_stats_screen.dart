@@ -3,10 +3,47 @@ import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/gradient_button.dart';
 
+// Data for each stat slide
+const _stats = [
+  _Stat(
+    emoji: '🧠',
+    stat: '31%',
+    headline: 'less anxiety',
+    body: 'Reduces amygdala activity — your brain\'s stress centre.',
+    source: 'Int\'l Journal of Yoga, 2016',
+  ),
+  _Stat(
+    emoji: '📉',
+    stat: '23%',
+    headline: 'lower cortisol',
+    body: 'Measurably cuts the stress hormone with daily practice.',
+    source: 'Harvard Mind-Body Medical Institute',
+  ),
+  _Stat(
+    emoji: '⚡',
+    stat: '40%',
+    headline: 'more alpha waves',
+    body: 'Boosts the calm-focus brain frequency in minutes.',
+    source: 'Neurological research on meditative states',
+  ),
+  _Stat(
+    emoji: '❤️',
+    stat: '↑ HRV',
+    headline: 'healthier heart',
+    body: 'Improves heart rate variability — a key longevity marker.',
+    source: 'J. of Alt. and Complementary Medicine',
+  ),
+];
+
 class ChantingStatsScreen extends StatefulWidget {
+  final int statIndex; // 0–3
   final VoidCallback onContinue;
 
-  const ChantingStatsScreen({super.key, required this.onContinue});
+  const ChantingStatsScreen({
+    super.key,
+    required this.statIndex,
+    required this.onContinue,
+  });
 
   @override
   State<ChantingStatsScreen> createState() => _ChantingStatsScreenState();
@@ -21,7 +58,7 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 700),
     )..forward();
   }
 
@@ -31,66 +68,44 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
     super.dispose();
   }
 
-  static const _stats = [
-    _Stat(
-      emoji: '🧠',
-      stat: '31%',
-      headline: 'less anxiety',
-      body: 'Reduces amygdala activity — your brain\'s stress centre.',
-      source: 'Int\'l Journal of Yoga, 2016',
-    ),
-    _Stat(
-      emoji: '📉',
-      stat: '23%',
-      headline: 'lower cortisol',
-      body: 'Measurably cuts the stress hormone with daily practice.',
-      source: 'Harvard Mind-Body Medical Institute',
-    ),
-    _Stat(
-      emoji: '⚡',
-      stat: '40%',
-      headline: 'more alpha waves',
-      body: 'Boosts the calm-focus brain frequency in minutes.',
-      source: 'Neurological research on meditative states',
-    ),
-    _Stat(
-      emoji: '❤️',
-      stat: '↑ HRV',
-      headline: 'healthier heart',
-      body: 'Improves heart rate variability — a key longevity marker.',
-      source: 'J. of Alt. and Complementary Medicine',
-    ),
-  ];
+  _Stat get _stat => _stats[widget.statIndex];
+  bool get _isLast => widget.statIndex == 3;
+  // Progress 0.30 → 0.55 across the 4 stat screens
+  double get _progress => 0.30 + widget.statIndex * 0.08;
 
   @override
   Widget build(BuildContext context) {
+    final fade = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    final slide = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
     return Scaffold(
       body: AppBackground(
         child: SafeArea(
           child: Container(
             color: AppColors.white,
-            child: ClipRRect(
-              borderRadius: BorderRadius.zero,
-              child: Column(
-                children: [
-                  _buildHeader(),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // ── Hero headline ──────────────────────────────
-                          FadeTransition(
-                            opacity: CurvedAnimation(
-                              parent: _controller,
-                              curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: FadeTransition(
+                    opacity: fade,
+                    child: SlideTransition(
+                      position: slide,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Badge row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 5),
                                   decoration: BoxDecoration(
                                     gradient: AppGradients.primaryButton,
                                     borderRadius: BorderRadius.circular(100),
@@ -106,63 +121,69 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'Science says\n10 minutes\nchanges everything',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textDark,
-                                    height: 1.2,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Research-backed benefits of daily mantra chanting',
-                                  style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textMedium),
+                                // Step dots
+                                Row(
+                                  children: List.generate(4, (i) => Container(
+                                    width: i == widget.statIndex ? 20 : 8,
+                                    height: 8,
+                                    margin: const EdgeInsets.only(left: 4),
+                                    decoration: BoxDecoration(
+                                      color: i == widget.statIndex
+                                          ? AppColors.primary
+                                          : AppColors.border,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  )),
                                 ),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 24),
-                          // ── Stat cards ────────────────────────────────
-                          ..._stats.asMap().entries.map((entry) {
-                            final delay = 0.2 + entry.key * 0.15;
-                            return _AnimatedStatCard(
-                              stat: entry.value,
-                              controller: _controller,
-                              delayStart: delay.clamp(0.0, 0.85),
-                              delayEnd: (delay + 0.3).clamp(0.0, 1.0),
-                            );
-                          }),
-                          const SizedBox(height: 16),
-                          // ── Disclaimer ─────────────────────────────────
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              'Statistics are drawn from peer-reviewed research. Individual results may vary.',
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: AppColors.textPale,
-                                fontSize: 11,
+                            const SizedBox(height: 20),
+                            const Text(
+                              'Science says\n10 minutes\nchanges everything',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark,
+                                height: 1.2,
                               ),
-                              textAlign: TextAlign.center,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 6),
+                            Text(
+                              'Research-backed benefits of daily mantra chanting',
+                              style: AppTextStyles.bodyLarge
+                                  .copyWith(color: AppColors.textMedium),
+                            ),
+                            const Spacer(),
+                            // Big stat card
+                            _buildBigStatCard(),
+                            const Spacer(),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(
+                                'Statistics are drawn from peer-reviewed research. Individual results may vary.',
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: AppColors.textPale,
+                                  fontSize: 11,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                    child: GradientButton(
-                      label: 'I\'m ready — let\'s begin',
-                      onPressed: widget.onContinue,
-                      showArrow: true,
-                    ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                  child: GradientButton(
+                    label: _isLast ? "I'm ready — let's begin" : 'Next',
+                    onPressed: widget.onContinue,
+                    showArrow: true,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -172,33 +193,106 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-      child: _buildProgressBar(2 / 5),
-    );
-  }
-
-  Widget _buildProgressBar(double progress) {
-    return Container(
-      height: 6,
-      decoration: BoxDecoration(
-        color: AppColors.border,
-        borderRadius: BorderRadius.circular(100),
-      ),
-      child: FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: progress,
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.textDark,
-            borderRadius: BorderRadius.circular(100),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      child: Container(
+        height: 6,
+        decoration: BoxDecoration(
+          color: AppColors.border,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: FractionallySizedBox(
+          alignment: Alignment.centerLeft,
+          widthFactor: _progress,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.textDark,
+              borderRadius: BorderRadius.circular(100),
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-// ── Stat data model ──────────────────────────────────────────────────────────
+  Widget _buildBigStatCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Emoji badge
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.primarySurface,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.primaryBorder, width: 1.5),
+            ),
+            child: Center(
+              child: Text(_stat.emoji,
+                  style: const TextStyle(fontSize: 40)),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Big stat number
+          Text(
+            _stat.stat,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 56,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primary,
+              height: 1.0,
+            ),
+          ),
+          const SizedBox(height: 6),
+          // Headline
+          Text(
+            _stat.headline,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Body
+          Text(
+            _stat.body,
+            style: AppTextStyles.bodyLarge.copyWith(
+              color: AppColors.textMedium,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          // Source
+          Text(
+            _stat.source,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              color: AppColors.textPale,
+              fontStyle: FontStyle.italic,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _Stat {
   final String emoji;
@@ -214,133 +308,4 @@ class _Stat {
     required this.body,
     required this.source,
   });
-}
-
-// ── Animated card wrapper ────────────────────────────────────────────────────
-
-class _AnimatedStatCard extends StatelessWidget {
-  final _Stat stat;
-  final AnimationController controller;
-  final double delayStart;
-  final double delayEnd;
-
-  const _AnimatedStatCard({
-    required this.stat,
-    required this.controller,
-    required this.delayStart,
-    required this.delayEnd,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fade = CurvedAnimation(
-      parent: controller,
-      curve: Interval(delayStart, delayEnd, curve: Curves.easeIn),
-    );
-    final slide = Tween<Offset>(begin: const Offset(0, 0.18), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: controller,
-        curve: Interval(delayStart, delayEnd, curve: Curves.easeOut),
-      ),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: FadeTransition(
-        opacity: fade,
-        child: SlideTransition(
-          position: slide,
-          child: _StatCard(stat: stat),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Individual stat card ─────────────────────────────────────────────────────
-
-class _StatCard extends StatelessWidget {
-  final _Stat stat;
-
-  const _StatCard({required this.stat});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1.5),
-      ),
-      child: Row(
-        children: [
-          // Emoji badge — uniform style, accent only on the emoji itself
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.primarySurface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.primaryBorder, width: 1),
-            ),
-            child: Center(
-              child: Text(stat.emoji, style: const TextStyle(fontSize: 24)),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Big stat number + label on same line
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '${stat.stat} ',
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      TextSpan(
-                        text: stat.headline,
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  stat.body,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textMedium,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  stat.source,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    color: AppColors.textPale,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

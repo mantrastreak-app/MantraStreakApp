@@ -58,6 +58,7 @@ class _AppRouterState extends State<AppRouter> {
   Prayer? _selectedPrayer;
   bool _signInMode = false; // true after logout → show sign-in, not sign-up
   String? _pendingOtpEmail;
+  int _statIndex = 0; // which of the 4 chanting-stat screens to show
 
   // Deep link / auth state subscriptions
   StreamSubscription<Uri>? _linkSub;
@@ -122,6 +123,19 @@ class _AppRouterState extends State<AppRouter> {
 
   void _navigate(AppRoute route) => setState(() => _currentRoute = route);
 
+  Future<void> _openFavouritePrayer(String id) async {
+    final row = await SupabaseService.fetchMantraById(id);
+    if (row != null && mounted) {
+      final prayer = Prayer.fromSupabase(row);
+      final state = context.read<AppState>();
+      setState(() => _selectedPrayer = prayer);
+      state.selectedPrayer = prayer.title;
+      state.selectedPrayerDeity = prayer.deity;
+      state.selectedPrayerDuration = prayer.durationMinutes;
+      _navigate(AppRoute.prayerPage);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
@@ -152,8 +166,16 @@ class _AppRouterState extends State<AppRouter> {
 
       case AppRoute.chantingStats:
         return ChantingStatsScreen(
-          key: const ValueKey(AppRoute.chantingStats),
-          onContinue: () => _navigate(AppRoute.login),
+          key: ValueKey('stat_$_statIndex'),
+          statIndex: _statIndex,
+          onContinue: () {
+            if (_statIndex < 3) {
+              setState(() => _statIndex++);
+            } else {
+              setState(() => _statIndex = 0);
+              _navigate(AppRoute.login);
+            }
+          },
         );
 
       case AppRoute.login:
@@ -224,12 +246,14 @@ class _AppRouterState extends State<AppRouter> {
           onLetsPray: () => _navigate(AppRoute.moodSelector),
           onViewDashboard: () => _navigate(AppRoute.monthlyDashboard),
           onProfile: () => _navigate(AppRoute.profile),
+          onFavouriteTap: (id) => _openFavouritePrayer(id),
         );
 
       case AppRoute.profile:
         return ProfileScreen(
           key: const ValueKey(AppRoute.profile),
           onClose: () => _navigate(AppRoute.home),
+          onViewDashboard: () => _navigate(AppRoute.monthlyDashboard),
           onLogOut: () => setState(() {
             _signInMode = true;
             _currentRoute = AppRoute.login;

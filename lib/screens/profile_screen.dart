@@ -9,8 +9,14 @@ import '../widgets/gradient_button.dart';
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onClose;
   final VoidCallback onLogOut;
+  final VoidCallback onViewDashboard;
 
-  const ProfileScreen({super.key, required this.onClose, required this.onLogOut});
+  const ProfileScreen({
+    super.key,
+    required this.onClose,
+    required this.onLogOut,
+    required this.onViewDashboard,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -193,6 +199,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             icon: Icons.self_improvement,
                             title: 'Deities',
                             child: _buildDeityGrid(),
+                          ),
+                          const SizedBox(height: 24),
+                          // Monthly stats
+                          _buildSection(
+                            icon: Icons.bar_chart_rounded,
+                            title: 'Monthly Stats',
+                            child: _buildMonthlyStatsRow(),
                           ),
                           const SizedBox(height: 32),
                         ],
@@ -483,6 +496,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const Spacer(),
             const Icon(Icons.edit_outlined, color: AppColors.primary, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthlyStatsRow() {
+    return GestureDetector(
+      onTap: widget.onViewDashboard,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.primarySurface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.primaryBorderDark, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.bar_chart_rounded,
+                color: AppColors.primary, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              'View Monthly Dashboard',
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            const Icon(Icons.chevron_right_rounded,
+                color: AppColors.primary, size: 20),
           ],
         ),
       ),

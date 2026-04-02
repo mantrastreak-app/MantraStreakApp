@@ -192,6 +192,16 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(response as List);
   }
 
+  static Future<Map<String, dynamic>?> fetchMantraById(String id) async {
+    final response = await _client
+        .from('mantras_by_mood')
+        .select()
+        .eq('mantra_id', id)
+        .limit(1);
+    final list = List<Map<String, dynamic>>.from(response as List);
+    return list.isNotEmpty ? list.first : null;
+  }
+
   // ---------------------------------------------------------------------------
   // Audio
   // ---------------------------------------------------------------------------

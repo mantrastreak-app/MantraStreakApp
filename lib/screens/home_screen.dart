@@ -12,6 +12,7 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onLetsPray;
   final VoidCallback onViewDashboard;
   final VoidCallback onProfile;
+  final void Function(String mantraId) onFavouriteTap;
 
   const HomeScreen({
     super.key,
@@ -20,6 +21,7 @@ class HomeScreen extends StatelessWidget {
     required this.onLetsPray,
     required this.onViewDashboard,
     required this.onProfile,
+    required this.onFavouriteTap,
   });
 
   @override
@@ -217,7 +219,10 @@ class HomeScreen extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             itemCount: favourites.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, i) => _FavouriteCard(data: favourites[i]),
+            itemBuilder: (context, i) => _FavouriteCard(
+              data: favourites[i],
+              onTap: () => onFavouriteTap(favourites[i]['id'] as String),
+            ),
           ),
         ),
       ],
@@ -282,12 +287,15 @@ class HomeScreen extends StatelessWidget {
 
 class _FavouriteCard extends StatelessWidget {
   final Map<String, dynamic> data;
+  final VoidCallback onTap;
 
-  const _FavouriteCard({required this.data});
+  const _FavouriteCard({required this.data, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       width: 150,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -343,6 +351,7 @@ class _FavouriteCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
       ),
     );
   }
