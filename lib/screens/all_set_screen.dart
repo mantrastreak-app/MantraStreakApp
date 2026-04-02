@@ -42,8 +42,8 @@ class AllSetScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'Everything is set up for your practice',
-                              style: AppTextStyles.bodyLarge.copyWith(fontSize: 18),
+                              'Your practice is ready. Chant at your pace, build your streak, transform your day.',
+                              style: AppTextStyles.bodyLarge.copyWith(fontSize: 16, height: 1.5),
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 32),

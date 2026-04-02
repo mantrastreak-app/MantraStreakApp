@@ -3,35 +3,35 @@ import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/gradient_button.dart';
 
-// Data for each stat slide
+// Data for each slide
 const _stats = [
   _Stat(
-    emoji: '🧠',
-    stat: '31%',
-    headline: 'less anxiety',
-    body: 'Reduces amygdala activity — your brain\'s stress centre.',
-    source: 'Int\'l Journal of Yoga, 2016',
+    emoji: '🙏',
+    stat: '',
+    headline: 'Practice Your Way',
+    body: 'Tap-count your mala beads or set your own timer. Even 5 minutes of sincere chanting creates a powerful habit.',
+    source: '',
   ),
   _Stat(
-    emoji: '📉',
-    stat: '23%',
-    headline: 'lower cortisol',
-    body: 'Measurably cuts the stress hormone with daily practice.',
-    source: 'Harvard Mind-Body Medical Institute',
+    emoji: '📿',
+    stat: '',
+    headline: 'Count Mode',
+    body: 'Tap along with your mala — 11, 21, 54, or 108 repetitions. Complete at your own pace.',
+    source: '',
   ),
   _Stat(
-    emoji: '⚡',
-    stat: '40%',
-    headline: 'more alpha waves',
-    body: 'Boosts the calm-focus brain frequency in minutes.',
-    source: 'Neurological research on meditative states',
+    emoji: '⏱',
+    stat: '',
+    headline: 'Timer Mode',
+    body: 'Set 5, 10, 20 or 30 minutes. Perfect for longer prayers like the Hanuman Chalisa.',
+    source: '',
   ),
   _Stat(
-    emoji: '❤️',
-    stat: '↑ HRV',
-    headline: 'healthier heart',
-    body: 'Improves heart rate variability — a key longevity marker.',
-    source: 'J. of Alt. and Complementary Medicine',
+    emoji: '🔥',
+    stat: '',
+    headline: 'Build the Habit',
+    body: 'Consistency matters more than duration. Even one round counts toward your streak.',
+    source: '',
   ),
 ];
 
@@ -111,7 +111,7 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
                                     borderRadius: BorderRadius.circular(100),
                                   ),
                                   child: const Text(
-                                    '10 MIN · DAILY',
+                                    'YOUR PACE · YOUR PRACTICE',
                                     style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 11,
@@ -139,10 +139,10 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
                             ),
                             const SizedBox(height: 20),
                             const Text(
-                              'Science says\n10 minutes\nchanges everything',
+                              'A few minutes or\n108 repetitions —\nyour practice, your pace',
                               style: TextStyle(
                                 fontFamily: 'Inter',
-                                fontSize: 30,
+                                fontSize: 28,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textDark,
                                 height: 1.2,
@@ -150,7 +150,7 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Research-backed benefits of daily mantra chanting',
+                              'Choose how you chant. The habit is what matters.',
                               style: AppTextStyles.bodyLarge
                                   .copyWith(color: AppColors.textMedium),
                             ),
@@ -244,24 +244,26 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
             ),
           ),
           const SizedBox(height: 20),
-          // Big stat number
-          Text(
-            _stat.stat,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 56,
-              fontWeight: FontWeight.w900,
-              color: AppColors.primary,
-              height: 1.0,
+          // Stat number (only shown when non-empty)
+          if (_stat.stat.isNotEmpty) ...[
+            Text(
+              _stat.stat,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 56,
+                fontWeight: FontWeight.w900,
+                color: AppColors.primary,
+                height: 1.0,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
+            const SizedBox(height: 6),
+          ],
           // Headline
           Text(
             _stat.headline,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Inter',
-              fontSize: 22,
+              fontSize: _stat.stat.isEmpty ? 26 : 22,
               fontWeight: FontWeight.w700,
               color: AppColors.textDark,
             ),
@@ -276,18 +278,19 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
-          // Source
-          Text(
-            _stat.source,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 12,
-              color: AppColors.textPale,
-              fontStyle: FontStyle.italic,
+          if (_stat.source.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              _stat.source,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                color: AppColors.textPale,
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
+          ],
         ],
       ),
     );
