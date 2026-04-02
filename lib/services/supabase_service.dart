@@ -160,9 +160,13 @@ class SupabaseService {
   static Future<void> logPrayerSession({
     required DateTime completedAt,
     required String prayerTitle,
+    required String mantraId,
     required String deity,
     required String mood,
     required int durationMinutes,
+    required int countAchieved,
+    required int targetCount,
+    required String sessionMode,
   }) async {
     final userId = currentUser?.id;
     if (userId == null) return;
@@ -171,10 +175,35 @@ class SupabaseService {
       'user_id': userId,
       'completed_at': completedAt.toIso8601String().substring(0, 10),
       'prayer_title': prayerTitle,
+      'mantra_id': mantraId,
       'deity': deity,
       'mood': mood,
       'duration_minutes': durationMinutes,
+      'count_achieved': countAchieved,
+      'target_count': targetCount,
+      'session_mode': sessionMode,
     });
+  }
+
+  static Future<Map<String, int>> loadTodayProgressForMantra(
+      String mantraId) async {
+    final userId = currentUser?.id;
+    if (userId == null) return {'count': 0, 'target': 108};
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final response = await _client
+        .from('prayer_sessions')
+        .select('count_achieved, target_count')
+        .eq('user_id', userId)
+        .eq('mantra_id', mantraId)
+        .eq('completed_at', today)
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    if (response == null) return {'count': 0, 'target': 108};
+    return {
+      'count': response['count_achieved'] as int? ?? 0,
+      'target': response['target_count'] as int? ?? 108,
+    };
   }
 
   // ---------------------------------------------------------------------------

@@ -32,6 +32,11 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
   // ── Mode ──────────────────────────────────────────────────────────────────
   _SessionMode _mode = _SessionMode.count;
 
+  // ── Today's progress ──────────────────────────────────────────────────────
+  int _todayCount = 0;
+  int _todayTarget = 108;
+  bool _progressLoaded = false;
+
   // ── Shared session state ──────────────────────────────────────────────────
   bool _sessionStarted = false;
   bool _isPlaying = false;
@@ -65,6 +70,20 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
   void initState() {
     super.initState();
     _initAudio();
+    _loadTodayProgress();
+  }
+
+  Future<void> _loadTodayProgress() async {
+    final progress = await SupabaseService.loadTodayProgressForMantra(
+      widget.prayer.id,
+    );
+    if (mounted) {
+      setState(() {
+        _todayCount = progress['count'] ?? 0;
+        _todayTarget = progress['target'] ?? 108;
+        _progressLoaded = true;
+      });
+    }
   }
 
   @override
@@ -584,6 +603,44 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
               widget.prayer.audioUrl!.isNotEmpty &&
               (_audioLoading || _audioReady || _audioError != null))
             _buildAudioBar(),
+
+          // Today's progress banner
+          if (_progressLoaded && _todayCount > 0)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primarySurface,
+                borderRadius: BorderRadius.circular(12),
+                border:
+                    Border.all(color: AppColors.primaryBorder, width: 1),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _todayCount >= _todayTarget
+                        ? Icons.check_circle
+                        : Icons.check_circle_outline,
+                    size: 15,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _todayCount >= _todayTarget
+                        ? 'Completed today ✓'
+                        : 'Today so far: $_todayCount / $_todayTarget chants',
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           // Mode toggle
           _buildModeToggle(),

@@ -20,6 +20,10 @@ class AppState extends ChangeNotifier {
   String? selectedPrayer;
   String? selectedPrayerDeity;
   int? selectedPrayerDuration;
+  String? selectedPrayerMantraId;
+  int currentSessionCount = 0;
+  int currentSessionTarget = 108;
+  String currentSessionMode = 'timer';
 
   // Favourite mantras (persisted locally)
   // Each entry stores just enough data to render a compact card.
@@ -176,7 +180,15 @@ class AppState extends ChangeNotifier {
   // Complete a prayer session
   // -------------------------------------------------------------------------
 
-  Future<void> completePrayer() async {
+  Future<void> completePrayer({
+    int countAchieved = 0,
+    int targetCount = 108,
+    String sessionMode = 'timer',
+  }) async {
+    currentSessionCount = countAchieved;
+    currentSessionTarget = targetCount;
+    currentSessionMode = sessionMode;
+
     final today = DateTime.now();
     final dateOnly = DateTime(today.year, today.month, today.day);
 
@@ -193,9 +205,13 @@ class AppState extends ChangeNotifier {
             SupabaseService.logPrayerSession(
               completedAt: dateOnly,
               prayerTitle: selectedPrayer ?? '',
+              mantraId: selectedPrayerMantraId ?? '',
               deity: selectedPrayerDeity ?? '',
               mood: selectedMood ?? '',
               durationMinutes: selectedPrayerDuration ?? 0,
+              countAchieved: countAchieved,
+              targetCount: targetCount,
+              sessionMode: sessionMode,
             ),
             SupabaseService.saveStreaks(
               currentStreak: prayerStreak,
@@ -234,6 +250,7 @@ class AppState extends ChangeNotifier {
     selectedPrayer = null;
     selectedPrayerDeity = null;
     selectedPrayerDuration = null;
+    selectedPrayerMantraId = null;
     favouriteMantraCards = [];
     errorMessage = null;
     notifyListeners();
