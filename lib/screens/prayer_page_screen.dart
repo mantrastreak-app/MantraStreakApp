@@ -68,6 +68,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
       await player.setAudioSource(
         AudioSource.uri(Uri.parse(resolvedUrl), headers: headers),
       );
+      // Loop the mantra continuously
       await player.setLoopMode(LoopMode.one);
       if (mounted) setState(() { _audioReady = true; _audioLoading = false; });
     } catch (e) {
@@ -80,15 +81,31 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
     }
   }
 
-  // ── Mute / unmute (audio playback is controlled by chanting session) ───────
-  Future<void> _toggleMute() async {
-    final player = _audioPlayer;
-    if (player == null || !_audioReady) return;
-    // Compute the new state before calling setState so the volume call
-    // always uses the correct (intended) value.
-    final newMuted = !_isMuted;
-    setState(() => _isMuted = newMuted);
-    await player.setVolume(newMuted ? 0.0 : 1.0);
+  // ── Audio helpers ─────────────────────────────────────────────────────────
+
+  /// Starts playing audio only when chanting is active and not muted.
+  void _playAudioIfNeeded() {
+    if (_audioReady && _isPlaying && !_isMuted) {
+      _audioPlayer?.play();
+    }
+  }
+
+  /// Pauses the audio track (used by both mute and chanting-pause).
+  void _pauseAudio() {
+    _audioPlayer?.pause();
+  }
+
+  // ── Mute / unmute ─────────────────────────────────────────────────────────
+  void _toggleMute() {
+    if (_audioPlayer == null || !_audioReady) return;
+    setState(() => _isMuted = !_isMuted);
+    if (_isMuted) {
+      // Actually pause the audio so silence is guaranteed
+      _pauseAudio();
+    } else {
+      // Resume audio only if chanting is currently running
+      _playAudioIfNeeded();
+    }
   }
 
   // ── Session timer + audio sync ─────────────────────────────────────────────
@@ -101,11 +118,9 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
   void _togglePlay() {
     setState(() => _isPlaying = !_isPlaying);
     if (_isPlaying) {
-      // Start audio when chanting starts
-      if (_audioReady) {
-        _audioPlayer?.setVolume(_isMuted ? 0.0 : 1.0);
-        _audioPlayer?.play();
-      }
+      // Chanting started / resumed — resume audio from where it was paused
+      // (just_audio resumes position automatically after pause)
+      _playAudioIfNeeded();
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         setState(() {
           if (_elapsedSeconds < _totalSeconds) {
@@ -119,9 +134,9 @@ class _PrayerPageScreenState extends State<PrayerPageScreen>
         });
       });
     } else {
-      // Pause audio when chanting is paused
+      // Chanting paused — pause audio regardless of mute state
       _timer?.cancel();
-      _audioPlayer?.pause();
+      _pauseAudio();
     }
   }
 
