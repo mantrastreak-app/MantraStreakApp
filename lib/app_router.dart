@@ -279,6 +279,7 @@ class _AppRouterState extends State<AppRouter> {
             state.selectedPrayer = prayer.title;
             state.selectedPrayerDeity = prayer.deity;
             state.selectedPrayerDuration = prayer.durationMinutes;
+            state.selectedPrayerMantraId = prayer.id;
             _navigate(AppRoute.prayerPage);
           },
           onBack: () => _navigate(AppRoute.moodSelector),

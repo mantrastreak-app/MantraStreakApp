@@ -407,16 +407,19 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
                     children: [
                       _buildPrayerHeader(),
                       Expanded(
-                        child: SingleChildScrollView(
-                          padding:
-                              const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                          child: Column(
-                            children: [
-                              _buildPrayerContent(),
-                              const SizedBox(height: 16),
-                              _buildBenefitsCard(),
-                              const SizedBox(height: 24),
-                            ],
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 200),
+                          child: SingleChildScrollView(
+                            padding:
+                                const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                            child: Column(
+                              children: [
+                                _buildPrayerContent(),
+                                const SizedBox(height: 16),
+                                _buildBenefitsCard(),
+                                const SizedBox(height: 24),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -591,7 +594,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
 
   Widget _buildPlayerControls() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
       decoration: const BoxDecoration(
           border:
               Border(top: BorderSide(color: AppColors.border, width: 1))),
@@ -607,7 +610,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
           // Today's progress banner
           if (_progressLoaded && _todayCount > 0)
             Container(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: const EdgeInsets.only(bottom: 8),
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
@@ -644,7 +647,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
 
           // Mode toggle
           _buildModeToggle(),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
 
           // Mode content
           if (_mode == _SessionMode.count)
@@ -652,7 +655,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
           else
             _buildTimerControls(),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _buildSaveExitButton(),
         ],
       ),
@@ -661,9 +664,9 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
 
   Widget _buildAudioBar() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       padding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
@@ -727,7 +730,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
 
   Widget _buildModeToggle() {
     return Container(
-      height: 42,
+      height: 38,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
           color: AppColors.surface,
@@ -811,14 +814,14 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
 
         // Big saffron tap circle
         GestureDetector(
           onTap: _onCountTap,
           child: Container(
-            width: 120,
-            height: 120,
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
               gradient: AppGradients.primaryButton,
               shape: BoxShape.circle,
@@ -835,7 +838,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
                 '$_count',
                 style: const TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 40,
+                    fontSize: 34,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
                     height: 1),
@@ -843,7 +846,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
 
         Text(
           '$_count / $_target',
@@ -853,7 +856,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
               fontWeight: FontWeight.w600,
               color: AppColors.textMedium),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
 
         _buildBeadDots(),
       ],
@@ -906,7 +909,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
             _fmt(_timerRemaining),
             style: const TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 52,
+                fontSize: 44,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textDark,
                 letterSpacing: -1),
@@ -919,7 +922,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
             style: AppTextStyles.bodyMedium
                 .copyWith(color: AppColors.textSubtle),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           _buildTimerPlayButton(),
         ],
       );
@@ -933,7 +936,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
         Text('Choose duration',
             style: AppTextStyles.labelMedium
                 .copyWith(color: AppColors.textMedium)),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -953,7 +956,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         _buildTimerPlayButton(),
       ],
     );
@@ -1032,7 +1035,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
       onTap: _saveAndExit,
       child: Container(
         width: double.infinity,
-        height: 46,
+        height: 40,
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(100),
@@ -1042,12 +1045,12 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.save_alt_rounded,
-                size: 16, color: AppColors.textMedium),
+                size: 14, color: AppColors.textMedium),
             SizedBox(width: 7),
             Text('Save & Exit',
                 style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textMedium)),
           ],
@@ -1119,7 +1122,14 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: ElevatedButton(
-                  onPressed: widget.onComplete,
+                  onPressed: () {
+                    context.read<AppState>().completePrayer(
+                      countAchieved: _count,
+                      targetCount: _target,
+                      sessionMode: _mode == _SessionMode.count ? 'count' : 'timer',
+                    );
+                    widget.onComplete();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: AppColors.primary,

@@ -114,6 +114,7 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
   List<Prayer> _prayers = [];
   bool _loading = true;
   String? _error;
+  Map<String, Map<String, int>> _todayProgress = {};
 
   @override
   void initState() {
@@ -158,16 +159,30 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
   Future<void> _load() async {
     try {
       final rows = await SupabaseService.fetchMantrasByMood(widget.mood);
+      final prayers = rows.map(Prayer.fromSupabase).toList();
       setState(() {
-        _prayers = rows.map(Prayer.fromSupabase).toList();
+        _prayers = prayers;
         _loading = false;
       });
+      _loadTodayProgress(prayers);
     } catch (e) {
       setState(() {
         _error = e.toString();
         _loading = false;
       });
     }
+  }
+
+  Future<void> _loadTodayProgress(List<Prayer> prayers) async {
+    final results = await Future.wait(
+      prayers.map((p) => SupabaseService.loadTodayProgressForMantra(p.id)),
+    );
+    if (!mounted) return;
+    final map = <String, Map<String, int>>{};
+    for (var i = 0; i < prayers.length; i++) {
+      map[prayers[i].id] = results[i];
+    }
+    setState(() => _todayProgress = map);
   }
 
   @override
@@ -235,6 +250,8 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
                             ..._prayers.map((p) => _PrayerCard(
                               prayer: p,
                               isSelected: _selectedPrayer == p,
+                              todayCount: _todayProgress[p.id]?['count'],
+                              todayTarget: _todayProgress[p.id]?['target'],
                               onTap: () => setState(() => _selectedPrayer = p),
                             )),
                           const SizedBox(height: 24),
@@ -265,9 +282,17 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
 class _PrayerCard extends StatelessWidget {
   final Prayer prayer;
   final bool isSelected;
+  final int? todayCount;
+  final int? todayTarget;
   final VoidCallback onTap;
 
-  const _PrayerCard({required this.prayer, required this.isSelected, required this.onTap});
+  const _PrayerCard({
+    required this.prayer,
+    required this.isSelected,
+    required this.onTap,
+    this.todayCount,
+    this.todayTarget,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -335,6 +360,41 @@ class _PrayerCard extends StatelessWidget {
                         ? prayer.moodSpecificMeaning
                         : prayer.meaning,
                         style: AppTextStyles.labelSmall),
+                    if (todayCount != null && todayCount! > 0) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySurface,
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(color: AppColors.primaryBorder, width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              (todayTarget != null && todayCount! >= todayTarget!)
+                                  ? Icons.check_circle
+                                  : Icons.check_circle_outline,
+                              size: 11,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              (todayTarget != null && todayCount! >= todayTarget!)
+                                  ? 'Done today'
+                                  : 'Today: $todayCount',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
