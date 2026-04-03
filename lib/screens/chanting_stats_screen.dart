@@ -185,8 +185,7 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildHeader() {
