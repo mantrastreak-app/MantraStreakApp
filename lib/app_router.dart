@@ -243,7 +243,7 @@ class _AppRouterState extends State<AppRouter> {
           key: const ValueKey(AppRoute.home),
           streak: state.prayerStreak,
           totalDays: state.totalPrayerDays,
-          onViewDashboard: () => _navigate(AppRoute.monthlyDashboard),
+          onViewDashboard: () {},
           onProfile: () => _navigate(AppRoute.profile),
           onFavouriteTap: (id) => _openFavouritePrayer(id),
         );
