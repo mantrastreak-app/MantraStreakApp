@@ -2,77 +2,163 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_state.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_background.dart';
 import '../widgets/app_logo.dart';
-import '../widgets/gradient_button.dart';
+import 'mood_selector_screen.dart';
+import 'prayer_selection_screen.dart';
+import 'prayer_page_screen.dart';
+import 'monthly_dashboard_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final int streak;
   final int totalDays;
-  final VoidCallback onLetsPray;
   final VoidCallback onViewDashboard;
   final VoidCallback onProfile;
   final void Function(String mantraId) onFavouriteTap;
+  final String? initialMood;
 
   const HomeScreen({
     super.key,
     this.streak = 0,
     this.totalDays = 0,
-    required this.onLetsPray,
     required this.onViewDashboard,
     required this.onProfile,
     required this.onFavouriteTap,
+    this.initialMood,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final favourites = context.watch<AppState>().favouriteMantraCards;
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      body: AppBackground(
-        child: SafeArea(
-          child: Container(
-            color: AppColors.white,
-            child: ClipRRect(
-              borderRadius: BorderRadius.zero,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildAppHeader(),
-                            const SizedBox(height: 24),
-                            _buildStreakCard(),
-                            const SizedBox(height: 24),
-                            if (favourites.isNotEmpty) ...[
-                              _buildFavouritesSection(favourites),
-                              const SizedBox(height: 24),
-                            ],
-                            _buildVerseCard(),
-                            const SizedBox(height: 24),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                    child: GradientButton(
-                      label: "Let's Pray",
-                      onPressed: onLetsPray,
-                      height: 68,
-                    ),
-                  ),
-                ],
-              ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          _buildHomeTab(),
+          _buildChantTab(),
+          _buildProgressTab(),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (i) => setState(() => _selectedIndex = i),
+          backgroundColor: AppColors.white,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.textSubtle,
+          selectedLabelStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 11,
+            fontWeight: FontWeight.w400,
+          ),
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home_rounded),
+              label: 'Home',
             ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.self_improvement_outlined),
+              activeIcon: Icon(Icons.self_improvement),
+              label: 'Chant',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart_outlined),
+              activeIcon: Icon(Icons.bar_chart_rounded),
+              label: 'Progress',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeTab() {
+    final favourites = context.watch<AppState>().favouriteMantraCards;
+    return SafeArea(
+      child: Container(
+        color: AppColors.white,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAppHeader(),
+              const SizedBox(height: 24),
+              _buildStreakCard(),
+              const SizedBox(height: 24),
+              if (favourites.isNotEmpty) ...[
+                _buildFavouritesSection(favourites),
+                const SizedBox(height: 24),
+              ],
+              _buildVerseCard(),
+              const SizedBox(height: 24),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildChantTab() {
+    return MoodSelectorScreen(
+      onBack: () => setState(() => _selectedIndex = 0),
+      onContinue: (mood) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PrayerSelectionScreen(
+              mood: mood,
+              onStart: (prayer) {
+                final appState = context.read<AppState>();
+                appState.selectedPrayer = prayer.title;
+                appState.selectedPrayerDeity = prayer.deity;
+                appState.selectedPrayerMantraId = prayer.id;
+                appState.selectedPrayerDuration = prayer.durationMinutes;
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PrayerPageScreen(
+                      prayer: prayer,
+                      onClose: () => Navigator.of(context).pop(),
+                      onComplete: () {
+                        appState.completePrayer();
+                        Navigator.of(context).popUntil(
+                          (route) => route.isFirst,
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
+              onBack: () {},
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProgressTab() {
+    final appState = context.watch<AppState>();
+    return MonthlyDashboardScreen(
+      dayStreak: appState.prayerStreak,
+      bestStreak: appState.bestStreak,
+      totalDays: appState.totalPrayerDays,
+      completedDays: appState.completedDays,
+      onClose: () => setState(() => _selectedIndex = 0),
     );
   }
 
@@ -91,7 +177,7 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         GestureDetector(
-          onTap: onProfile,
+          onTap: widget.onProfile,
           child: Container(
             width: 44,
             height: 44,
@@ -138,13 +224,13 @@ class HomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Daily Streak', style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: AppColors.textLight)),
-                      Text('$streak Days', style: AppTextStyles.streakNumber),
+                      Text('${widget.streak} Days', style: AppTextStyles.streakNumber),
                     ],
                   ),
                 ],
               ),
               GestureDetector(
-                onTap: onViewDashboard,
+                onTap: widget.onViewDashboard,
                 child: Container(
                   width: 40,
                   height: 40,
@@ -166,7 +252,7 @@ class HomeScreen extends StatelessWidget {
                 child: Container(
                   height: 32,
                   decoration: BoxDecoration(
-                    color: i < streak
+                    color: i < widget.streak
                         ? AppColors.primary.withValues(alpha: 0.15)
                         : AppColors.surface,
                     borderRadius: BorderRadius.circular(10),
@@ -185,12 +271,12 @@ class HomeScreen extends StatelessWidget {
                   const Icon(Icons.calendar_today_outlined, color: AppColors.textSubtle, size: 16),
                   const SizedBox(width: 8),
                   Text(
-                    streak == 0 ? 'Not completed yet' : '$streak day streak',
+                    widget.streak == 0 ? 'Not completed yet' : '${widget.streak} day streak',
                     style: AppTextStyles.bodyMedium,
                   ),
                 ],
               ),
-              Text('$totalDays total', style: AppTextStyles.labelSmall),
+              Text('${widget.totalDays} total', style: AppTextStyles.labelSmall),
             ],
           ),
         ],
@@ -221,7 +307,7 @@ class HomeScreen extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, i) => _FavouriteCard(
               data: favourites[i],
-              onTap: () => onFavouriteTap(favourites[i]['id'] as String),
+              onTap: () => widget.onFavouriteTap(favourites[i]['id'] as String),
             ),
           ),
         ),

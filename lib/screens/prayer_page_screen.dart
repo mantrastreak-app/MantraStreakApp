@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_state.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_background.dart';
 import '../services/supabase_service.dart';
 import 'prayer_selection_screen.dart';
 
@@ -118,6 +117,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
           _audioReady = true;
           _audioLoading = false;
         });
+        if (_isPlaying && !_isMuted) _audioPlayer?.play();
       }
     } catch (e) {
       if (mounted) {
@@ -139,9 +139,9 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
     if (_audioPlayer == null || !_audioReady) return;
     setState(() => _isMuted = !_isMuted);
     if (_isMuted) {
-      _pauseAudio();
-    } else {
-      _playAudioIfNeeded();
+      _audioPlayer?.pause();
+    } else if (_isPlaying) {
+      _audioPlayer?.play();
     }
   }
 
@@ -216,6 +216,11 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
       _sessionStarted = false;
       _showCompletion = true;
     });
+    final appState = context.read<AppState>();
+    appState.pendingSessionCount = _count;
+    appState.pendingSessionTarget = _target;
+    appState.pendingSessionMode =
+        _mode == _SessionMode.count ? 'count' : 'timer';
     _persistDuration();
   }
 
@@ -229,6 +234,11 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
     _pauseAudio();
     if (_elapsedSeconds > 0 || _count > 0) {
       _persistDuration();
+      final appState = context.read<AppState>();
+      appState.pendingSessionCount = _count;
+      appState.pendingSessionTarget = _target;
+      appState.pendingSessionMode =
+          _mode == _SessionMode.count ? 'count' : 'timer';
       widget.onComplete();
     } else {
       widget.onClose();
@@ -395,43 +405,185 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AppBackground(
-        child: SafeArea(
-          child: Container(
-            color: AppColors.white,
-            child: ClipRRect(
-              borderRadius: BorderRadius.zero,
-              child: Stack(
-                children: [
-                  Column(
-                    children: [
-                      _buildPrayerHeader(),
-                      Expanded(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(minHeight: 200),
-                          child: SingleChildScrollView(
-                            padding:
-                                const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                            child: Column(
-                              children: [
-                                _buildPrayerContent(),
-                                const SizedBox(height: 16),
-                                _buildBenefitsCard(),
-                                const SizedBox(height: 24),
-                              ],
-                            ),
+      backgroundColor: AppColors.white,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                _buildPrayerHeader(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 200),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // ── Unified content + controls card ──
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceLight,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                                color: AppColors.border, width: 1),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Sanskrit section
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    20, 20, 20, 0),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    _sectionLabel('SANSKRIT'),
+                                    const SizedBox(height: 8),
+                                    Text(widget.prayer.sanskritName,
+                                        style:
+                                            AppTextStyles.sanskritText),
+                                    const SizedBox(height: 16),
+                                    _sectionLabel('PRONUNCIATION'),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                        widget.prayer.transliteration,
+                                        style: AppTextStyles
+                                            .pronunciationText),
+                                  ],
+                                ),
+                              ),
+
+                              // Divider between content and controls
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16),
+                                child: Container(
+                                  height: 1,
+                                  color: AppColors.border,
+                                ),
+                              ),
+
+                              // Controls area inside the card
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    16, 0, 16, 20),
+                                child: Column(
+                                  children: [
+                                    if (widget.prayer.audioUrl != null &&
+                                        widget.prayer.audioUrl!
+                                            .isNotEmpty &&
+                                        (_audioLoading ||
+                                            _audioReady ||
+                                            _audioError != null))
+                                      _buildAudioBar(),
+                                    if (_progressLoaded &&
+                                        _todayCount > 0)
+                                      _buildProgressBanner(),
+                                    _buildModeToggle(),
+                                    const SizedBox(height: 12),
+                                    if (_mode == _SessionMode.count)
+                                      _buildCountControls()
+                                    else
+                                      _buildTimerControls(),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      _buildPlayerControls(),
-                    ],
+
+                        const SizedBox(height: 16),
+
+                        // Meaning + Benefits below the main card
+                        _buildMeaningCard(),
+                        const SizedBox(height: 12),
+                        _buildBenefitsCard(),
+                      ],
+                    ),
                   ),
-                  if (_showCompletion) _buildCompletionOverlay(),
-                ],
-              ),
+                ),
+              ],
+            ),
+
+            // Save & Exit pinned at very bottom
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 16,
+              child: _buildSaveExitButton(),
+            ),
+
+            if (_showCompletion) _buildCompletionOverlay(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontFamily: 'Inter',
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textSubtle,
+        letterSpacing: 0.8,
+      ),
+    );
+  }
+
+  Widget _buildProgressBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.primarySurface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.primaryBorder, width: 1),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            _todayCount >= _todayTarget
+                ? Icons.check_circle_rounded
+                : Icons.check_circle_outline_rounded,
+            size: 14,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            _todayCount >= _todayTarget
+                ? 'Completed today ✓'
+                : 'Today so far: $_todayCount / $_todayTarget',
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
             ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeaningCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionLabel('MEANING'),
+          const SizedBox(height: 8),
+          Text(widget.prayer.meaning, style: AppTextStyles.quoteText),
+        ],
       ),
     );
   }
@@ -504,60 +656,6 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
     );
   }
 
-  Widget _buildPrayerContent() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: AppGradients.streakCard,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.primaryBorder, width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x1A000000),
-              blurRadius: 15,
-              offset: Offset(0, 10))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('SANSKRIT',
-              style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSubtle,
-                  letterSpacing: 0.35)),
-          const SizedBox(height: 12),
-          Text(widget.prayer.sanskritName,
-              style: AppTextStyles.sanskritText),
-          const SizedBox(height: 20),
-          const Text('PRONUNCIATION',
-              style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSubtle,
-                  letterSpacing: 0.35)),
-          const SizedBox(height: 12),
-          Text(widget.prayer.transliteration,
-              style: AppTextStyles.pronunciationText),
-          const SizedBox(height: 16),
-          const Divider(color: AppColors.primaryBorder),
-          const SizedBox(height: 16),
-          const Text('MEANING',
-              style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSubtle,
-                  letterSpacing: 0.35)),
-          const SizedBox(height: 12),
-          Text(widget.prayer.meaning, style: AppTextStyles.quoteText),
-        ],
-      ),
-    );
-  }
 
   Widget _buildBenefitsCard() {
     return Container(
@@ -590,77 +688,6 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
     );
   }
 
-  // ── Player controls ───────────────────────────────────────────────────────
-
-  Widget _buildPlayerControls() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
-      decoration: const BoxDecoration(
-          border:
-              Border(top: BorderSide(color: AppColors.border, width: 1))),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Audio bar
-          if (widget.prayer.audioUrl != null &&
-              widget.prayer.audioUrl!.isNotEmpty &&
-              (_audioLoading || _audioReady || _audioError != null))
-            _buildAudioBar(),
-
-          // Today's progress banner
-          if (_progressLoaded && _todayCount > 0)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primarySurface,
-                borderRadius: BorderRadius.circular(12),
-                border:
-                    Border.all(color: AppColors.primaryBorder, width: 1),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    _todayCount >= _todayTarget
-                        ? Icons.check_circle
-                        : Icons.check_circle_outline,
-                    size: 15,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _todayCount >= _todayTarget
-                        ? 'Completed today ✓'
-                        : 'Today so far: $_todayCount / $_todayTarget chants',
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Mode toggle
-          _buildModeToggle(),
-          const SizedBox(height: 10),
-
-          // Mode content
-          if (_mode == _SessionMode.count)
-            _buildCountControls()
-          else
-            _buildTimerControls(),
-
-          const SizedBox(height: 8),
-          _buildSaveExitButton(),
-        ],
-      ),
-    );
-  }
 
   Widget _buildAudioBar() {
     return Container(
@@ -1123,11 +1150,6 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: ElevatedButton(
                   onPressed: () {
-                    context.read<AppState>().completePrayer(
-                      countAchieved: _count,
-                      targetCount: _target,
-                      sessionMode: _mode == _SessionMode.count ? 'count' : 'timer',
-                    );
                     widget.onComplete();
                   },
                   style: ElevatedButton.styleFrom(

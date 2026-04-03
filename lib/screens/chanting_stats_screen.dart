@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_background.dart';
 import '../widgets/gradient_button.dart';
 
 // Data for each slide
@@ -82,13 +81,12 @@ class _ChantingStatsScreenState extends State<ChantingStatsScreen>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     return Scaffold(
-      body: AppBackground(
-        child: SafeArea(
-          child: Container(
-            color: AppColors.white,
-            child: Column(
-              children: [
-                _buildHeader(),
+      body: SafeArea(
+        child: Container(
+          color: AppColors.white,
+          child: Column(
+            children: [
+              _buildHeader(),
                 Expanded(
                   child: FadeTransition(
                     opacity: fade,

@@ -113,7 +113,7 @@ class _DeitySelectionScreenState extends State<DeitySelectionScreen> {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 1.0,
+        childAspectRatio: 1.15,
       ),
       itemCount: _deities.length,
       itemBuilder: (context, index) {
@@ -154,8 +154,8 @@ class _DeityCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: deity.bgColor,
                 shape: BoxShape.circle,
@@ -165,14 +165,17 @@ class _DeityCard extends StatelessWidget {
               ),
               child: Icon(
                 deity.icon,
-                size: 26,
+                size: 22,
                 color: isSelected ? AppColors.primary : AppColors.textSubtle,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               deity.name,
-              style: AppTextStyles.titleSmall.copyWith(
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
                 color: isSelected ? AppColors.primary : AppColors.textDark,
               ),
             ),

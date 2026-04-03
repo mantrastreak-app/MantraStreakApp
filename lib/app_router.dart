@@ -243,7 +243,6 @@ class _AppRouterState extends State<AppRouter> {
           key: const ValueKey(AppRoute.home),
           streak: state.prayerStreak,
           totalDays: state.totalPrayerDays,
-          onLetsPray: () => _navigate(AppRoute.moodSelector),
           onViewDashboard: () => _navigate(AppRoute.monthlyDashboard),
           onProfile: () => _navigate(AppRoute.profile),
           onFavouriteTap: (id) => _openFavouritePrayer(id),
@@ -291,12 +290,7 @@ class _AppRouterState extends State<AppRouter> {
           prayer: _selectedPrayer!,
           onClose: () => _navigate(AppRoute.home),
           onComplete: () {
-            state.completePrayer(
-              mantraId: _selectedPrayer?.id ?? '',
-              countAchieved: 0,
-              targetCount: 108,
-              sessionMode: 'timer',
-            );
+            state.completePrayer();
             _navigate(AppRoute.home);
           },
         );

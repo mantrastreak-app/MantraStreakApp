@@ -25,6 +25,11 @@ class AppState extends ChangeNotifier {
   int currentSessionTarget = 108;
   String currentSessionMode = 'timer';
 
+  // Pending session data — set by prayer_page_screen before calling onComplete
+  int pendingSessionCount = 0;
+  int pendingSessionTarget = 108;
+  String pendingSessionMode = 'timer';
+
   // Today's chant progress — mantraId → count chanted today
   Map<String, int> todayChantCounts = {};
 
@@ -199,20 +204,16 @@ class AppState extends ChangeNotifier {
   // Complete a prayer session
   // -------------------------------------------------------------------------
 
-  Future<void> completePrayer({
-    String mantraId = '',
-    int countAchieved = 0,
-    int targetCount = 108,
-    String sessionMode = 'timer',
-  }) async {
-    // Update in-memory progress immediately so UI reflects it instantly
-    if (mantraId.isNotEmpty) {
-      todayChantCounts[mantraId] =
-          (todayChantCounts[mantraId] ?? 0) + countAchieved;
-    }
-
+  Future<void> completePrayer() async {
     final today = DateTime.now();
     final dateOnly = DateTime(today.year, today.month, today.day);
+
+    // Update in-memory today progress immediately
+    final mantraId = selectedPrayerMantraId ?? '';
+    if (mantraId.isNotEmpty && pendingSessionCount > 0) {
+      todayChantCounts[mantraId] =
+          (todayChantCounts[mantraId] ?? 0) + pendingSessionCount;
+    }
 
     if (!completedDays.contains(dateOnly)) {
       completedDays.add(dateOnly);
@@ -232,9 +233,9 @@ class AppState extends ChangeNotifier {
             deity: selectedPrayerDeity ?? '',
             mood: selectedMood ?? '',
             durationMinutes: selectedPrayerDuration ?? 0,
-            countAchieved: countAchieved,
-            targetCount: targetCount,
-            sessionMode: sessionMode,
+            countAchieved: pendingSessionCount,
+            targetCount: pendingSessionTarget,
+            sessionMode: pendingSessionMode,
           ),
           SupabaseService.saveStreaks(
             currentStreak: prayerStreak,
@@ -248,6 +249,11 @@ class AppState extends ChangeNotifier {
         notifyListeners();
       }
     }
+
+    // Reset pending
+    pendingSessionCount = 0;
+    pendingSessionTarget = 108;
+    pendingSessionMode = 'timer';
   }
 
   bool isDayCompleted(DateTime date) {
@@ -274,6 +280,9 @@ class AppState extends ChangeNotifier {
     selectedPrayerDuration = null;
     selectedPrayerMantraId = null;
     todayChantCounts = {};
+    pendingSessionCount = 0;
+    pendingSessionTarget = 108;
+    pendingSessionMode = 'timer';
     favouriteMantraCards = [];
     errorMessage = null;
     notifyListeners();
