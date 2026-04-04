@@ -67,7 +67,7 @@ class SupabaseService {
   static Future<void> sendPasswordResetEmail(String email) async {
     await _client.auth.resetPasswordForEmail(
       email,
-      redirectTo: 'com.mantrastreak.app://reset-password',
+      redirectTo: 'https://mantrastreak-app-2026.web.app/#/reset-password',
     );
   }
 

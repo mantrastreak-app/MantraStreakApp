@@ -140,6 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.of(context).popUntil(
                           (route) => route.isFirst,
                         );
+                        // Switch to Home tab after completion
+                        setState(() => _selectedIndex = 0);
                       },
                     ),
                   ),

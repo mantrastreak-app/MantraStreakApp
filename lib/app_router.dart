@@ -78,6 +78,20 @@ class _AppRouterState extends State<AppRouter> {
 
     _initDeepLinks();
     _initAuthStateListener();
+
+    // Handle web password recovery on cold start
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final uri = Uri.base;
+      final fragment = uri.fragment;
+      if (fragment.contains('type=recovery') ||
+          fragment.contains('access_token')) {
+        try {
+          await Supabase.instance.client.auth
+              .getSessionFromUrl(Uri.parse(
+                  '${uri.origin}${uri.path}?${fragment.replaceAll('#', '')}'));
+        } catch (_) {}
+      }
+    });
   }
 
   // ── Deep link handling (for Supabase password reset emails) ───────────────

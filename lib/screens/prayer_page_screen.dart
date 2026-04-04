@@ -157,11 +157,13 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
 
   void _setMode(_SessionMode mode) {
     if (_sessionStarted) return;
+    final appState = context.read<AppState>();
     setState(() {
       _mode = mode;
       _count = 0;
       _elapsedSeconds = 0;
-      _timerDurationSeconds = null;
+      // Restore default timer instead of resetting to null
+      _timerDurationSeconds = appState.defaultTimerMinutes * 60;
     });
   }
 

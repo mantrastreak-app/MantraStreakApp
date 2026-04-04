@@ -23,14 +23,22 @@
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="mantra_streak">
+  <meta name="apple-mobile-web-app-title" content="Mantra Streak">
+  <meta name="theme-color" content="#FF6B35">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>mantra_streak</title>
+  <title>Mantra Streak</title>
   <link rel="manifest" href="manifest.json">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-86X5FEP2BZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-86X5FEP2BZ');
+</script>
 </head>
 <body>
   <!--
@@ -41,6 +49,21 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script>
+    // Handle Supabase password recovery redirect
+    // Supabase appends tokens as hash params like:
+    // #access_token=...&type=recovery
+    // Flutter web needs the page to load normally so
+    // Supabase Flutter SDK can detect the recovery event.
+    // No action needed here — just ensure hash is preserved.
+    window.addEventListener('load', function() {
+      const hash = window.location.hash;
+      if (hash.includes('type=recovery')) {
+        // Store flag so app knows to show reset screen
+        sessionStorage.setItem('supabase_recovery', 'true');
+      }
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
