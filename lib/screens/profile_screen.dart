@@ -481,27 +481,209 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         const Divider(color: AppColors.border),
         const SizedBox(height: 16),
-        Text('Default Practice',
-            style: AppTextStyles.titleSmall.copyWith(
-                fontWeight: FontWeight.w600)),
-        const SizedBox(height: 4),
-        Text(
-          'Count: ${appState.defaultCountTarget} chants  ·  '
-          'Timer: ${appState.defaultTimerMinutes} min',
-          style: AppTextStyles.bodyMedium,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Default Practice',
+                style: AppTextStyles.titleSmall.copyWith(
+                    fontWeight: FontWeight.w600)),
+            GestureDetector(
+              onTap: () => _showEditPracticeSheet(appState),
+              child: Text('Edit',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600)),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () {
-            // TODO: open edit sheet in a future update
-          },
-          child: Text('Edit',
-              style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600)),
+        Row(
+          children: [
+            _PracticeChip(
+              icon: Icons.touch_app_rounded,
+              label: '${appState.defaultCountTarget} chants',
+            ),
+            const SizedBox(width: 8),
+            _PracticeChip(
+              icon: Icons.timer_outlined,
+              label: '${appState.defaultTimerMinutes} min',
+            ),
+          ],
         ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  void _showEditPracticeSheet(AppState appState) {
+    int selectedCount = appState.defaultCountTarget;
+    int selectedMinutes = appState.defaultTimerMinutes;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+              24, 16, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text('Default Practice',
+                  style: AppTextStyles.titleMedium),
+              const SizedBox(height: 4),
+              Text('These become your starting point on every mantra.',
+                  style: AppTextStyles.bodyMedium),
+              const SizedBox(height: 24),
+
+              Text('Count target',
+                  style: AppTextStyles.labelMedium.copyWith(
+                      color: AppColors.textMedium,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 10),
+              Row(
+                children: [11, 21, 54, 108].map((v) => Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: () => setSheetState(() => selectedCount = v),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: selectedCount == v
+                              ? AppColors.primarySurface
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selectedCount == v
+                                ? AppColors.primary
+                                : AppColors.border,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Text('$v',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: selectedCount == v
+                                      ? AppColors.primary
+                                      : AppColors.textDark,
+                                )),
+                            Text('chants',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 10,
+                                  color: selectedCount == v
+                                      ? AppColors.primary
+                                      : AppColors.textSubtle,
+                                )),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                )).toList(),
+              ),
+              const SizedBox(height: 20),
+
+              Text('Timer duration',
+                  style: AppTextStyles.labelMedium.copyWith(
+                      color: AppColors.textMedium,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 10),
+              Row(
+                children: [5, 10, 15, 20].map((v) => Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: () => setSheetState(() => selectedMinutes = v),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: selectedMinutes == v
+                              ? AppColors.primarySurface
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selectedMinutes == v
+                                ? AppColors.primary
+                                : AppColors.border,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Text('$v',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: selectedMinutes == v
+                                      ? AppColors.primary
+                                      : AppColors.textDark,
+                                )),
+                            Text('min',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 10,
+                                  color: selectedMinutes == v
+                                      ? AppColors.primary
+                                      : AppColors.textSubtle,
+                                )),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                )).toList(),
+              ),
+              const SizedBox(height: 28),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100)),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    appState.setDefaultPractice(
+                        selectedCount, selectedMinutes);
+                    appState.saveProfile();
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Save',
+                      style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -680,4 +862,36 @@ class _Deity {
   final String name;
   final IconData icon;
   const _Deity(this.name, this.icon);
+}
+
+class _PracticeChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _PracticeChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primarySurface,
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: AppColors.primaryBorder, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: AppColors.primary),
+          const SizedBox(width: 5),
+          Text(label,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              )),
+        ],
+      ),
+    );
+  }
 }
