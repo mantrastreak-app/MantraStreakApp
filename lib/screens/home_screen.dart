@@ -100,6 +100,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildAppHeader(),
               const SizedBox(height: 24),
               _buildStreakCard(),
+              const SizedBox(height: 20),
+              _buildChantCTA(),
               const SizedBox(height: 24),
               if (favourites.isNotEmpty) ...[
                 _buildFavouritesSection(favourites),
@@ -143,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 );
               },
-              onBack: () {},
+              onBack: () => Navigator.of(context).pop(),
             ),
           ),
         );
@@ -159,6 +161,75 @@ class _HomeScreenState extends State<HomeScreen> {
       totalDays: appState.totalPrayerDays,
       completedDays: appState.completedDays,
       onClose: () => setState(() => _selectedIndex = 0),
+    );
+  }
+
+  Widget _buildChantCTA() {
+    return GestureDetector(
+      onTap: () => setState(() => _selectedIndex = 1),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: AppGradients.primaryButton,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x40FF6900),
+              blurRadius: 20,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.self_improvement_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Start Chanting',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Tap to choose your mantra',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white70,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

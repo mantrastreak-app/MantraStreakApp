@@ -397,38 +397,6 @@ class _PrayerCard extends StatelessWidget {
                         ),
                       ),
                     ],
-                    Builder(builder: (context) {
-                      final todayCount = context.watch<AppState>().todayCountFor(prayer.id);
-                      if (todayCount == 0) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: AppColors.primarySurface,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.primaryBorder, width: 1),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.check_circle_rounded,
-                                  size: 12, color: AppColors.primary),
-                              const SizedBox(width: 5),
-                              Text(
-                                'Today: $todayCount chants',
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
                   ],
                 ),
               ),

@@ -187,6 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: _buildTimeRow(),
                           ),
                           const SizedBox(height: 24),
+                          _buildDefaultPracticeSection(),
                           // Prayer days
                           _buildSection(
                             icon: Icons.calendar_today_outlined,
@@ -470,6 +471,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildDefaultPracticeSection() {
+    final appState = context.watch<AppState>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(color: AppColors.border),
+        const SizedBox(height: 16),
+        Text('Default Practice',
+            style: AppTextStyles.titleSmall.copyWith(
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Text(
+          'Count: ${appState.defaultCountTarget} chants  ·  '
+          'Timer: ${appState.defaultTimerMinutes} min',
+          style: AppTextStyles.bodyMedium,
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () {
+            // TODO: open edit sheet in a future update
+          },
+          child: Text('Edit',
+              style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600)),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 

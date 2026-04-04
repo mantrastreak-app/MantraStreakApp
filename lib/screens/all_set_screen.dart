@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/gradient_button.dart';
 
-class AllSetScreen extends StatelessWidget {
+class AllSetScreen extends StatefulWidget {
   final VoidCallback onContinue;
   final int daysPerWeek;
   final int deitiesSelected;
@@ -14,6 +16,14 @@ class AllSetScreen extends StatelessWidget {
     this.daysPerWeek = 1,
     this.deitiesSelected = 1,
   });
+
+  @override
+  State<AllSetScreen> createState() => _AllSetScreenState();
+}
+
+class _AllSetScreenState extends State<AllSetScreen> {
+  int _selectedCountTarget = 108;
+  int _selectedTimerMinutes = 10;
 
   @override
   Widget build(BuildContext context) {
@@ -27,29 +37,31 @@ class AllSetScreen extends StatelessWidget {
               child: Column(
                 children: [
                   Expanded(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildSuccessIcon(),
-                            const SizedBox(height: 32),
-                            const Text(
-                              "You're all set!",
-                              style: AppTextStyles.displayMedium,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Your practice is ready. Chant at your pace, build your streak, transform your day.',
-                              style: AppTextStyles.bodyLarge.copyWith(fontSize: 16, height: 1.5),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 32),
-                            _buildSummaryCard(),
-                          ],
-                        ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 32),
+                          _buildSuccessIcon(),
+                          const SizedBox(height: 32),
+                          const Text(
+                            "You're all set!",
+                            style: AppTextStyles.displayMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Your practice is ready. Chant at your pace, build your streak, transform your day.',
+                            style: AppTextStyles.bodyLarge.copyWith(fontSize: 16, height: 1.5),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 32),
+                          _buildPracticePreference(),
+                          const SizedBox(height: 24),
+                          _buildSummaryCard(),
+                          const SizedBox(height: 32),
+                        ],
                       ),
                     ),
                   ),
@@ -57,7 +69,13 @@ class AllSetScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                     child: GradientButton(
                       label: 'Start My Journey',
-                      onPressed: onContinue,
+                      onPressed: () {
+                        context.read<AppState>().setDefaultPractice(
+                          _selectedCountTarget,
+                          _selectedTimerMinutes,
+                        );
+                        widget.onContinue();
+                      },
                       showArrow: true,
                     ),
                   ),
@@ -86,6 +104,117 @@ class AllSetScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildPracticePreference() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Default chanting target',
+            style: AppTextStyles.titleSmall.copyWith(
+                color: AppColors.textMedium, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        Row(
+          children: [11, 21, 54, 108].map((v) => Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedCountTarget = v),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _selectedCountTarget == v
+                        ? AppColors.primarySurface
+                        : AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _selectedCountTarget == v
+                          ? AppColors.primary
+                          : AppColors.border,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text('$v',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: _selectedCountTarget == v
+                                ? AppColors.primary
+                                : AppColors.textDark,
+                          )),
+                      Text('chants',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 10,
+                            color: _selectedCountTarget == v
+                                ? AppColors.primary
+                                : AppColors.textSubtle,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          )).toList(),
+        ),
+        const SizedBox(height: 16),
+        Text('Default timer duration',
+            style: AppTextStyles.titleSmall.copyWith(
+                color: AppColors.textMedium, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        Row(
+          children: [5, 10, 15, 20].map((v) => Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedTimerMinutes = v),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _selectedTimerMinutes == v
+                        ? AppColors.primarySurface
+                        : AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _selectedTimerMinutes == v
+                          ? AppColors.primary
+                          : AppColors.border,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text('$v',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: _selectedTimerMinutes == v
+                                ? AppColors.primary
+                                : AppColors.textDark,
+                          )),
+                      Text('min',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 10,
+                            color: _selectedTimerMinutes == v
+                                ? AppColors.primary
+                                : AppColors.textSubtle,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          )).toList(),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSummaryCard() {
     return Container(
       width: double.infinity,
@@ -110,9 +239,9 @@ class AllSetScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text('Days: $daysPerWeek days/week', style: AppTextStyles.bodyLarge),
+          Text('Days: ${widget.daysPerWeek} days/week', style: AppTextStyles.bodyLarge),
           const SizedBox(height: 8),
-          Text('Deities: $deitiesSelected selected', style: AppTextStyles.bodyLarge),
+          Text('Deities: ${widget.deitiesSelected} selected', style: AppTextStyles.bodyLarge),
         ],
       ),
     );

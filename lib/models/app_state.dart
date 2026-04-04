@@ -8,6 +8,8 @@ class AppState extends ChangeNotifier {
   String reminderTime = '06:00';
   String reminderPeriod = 'AM';
   List<String> selectedDays = [];
+  int defaultCountTarget = 108;
+  int defaultTimerMinutes = 10;
 
   // Streak stats
   int prayerStreak = 0;
@@ -128,6 +130,12 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setDefaultPractice(int countTarget, int timerMinutes) {
+    defaultCountTarget = countTarget;
+    defaultTimerMinutes = timerMinutes;
+    notifyListeners();
+  }
+
   // -------------------------------------------------------------------------
   // Supabase: load all user data after login
   // -------------------------------------------------------------------------
@@ -151,6 +159,8 @@ class AppState extends ChangeNotifier {
       reminderTime = profile['reminder_time'] ?? '06:00';
       reminderPeriod = profile['reminder_period'] ?? 'AM';
       selectedDays = List<String>.from(profile['selected_days'] ?? []);
+      defaultCountTarget = profile['default_count_target'] as int? ?? 108;
+      defaultTimerMinutes = profile['default_timer_minutes'] as int? ?? 10;
     }
   }
 
@@ -193,6 +203,8 @@ class AppState extends ChangeNotifier {
         reminderTime: reminderTime,
         reminderPeriod: reminderPeriod,
         selectedDays: selectedDays,
+        defaultCountTarget: defaultCountTarget,
+        defaultTimerMinutes: defaultTimerMinutes,
       );
     } catch (e) {
       errorMessage = e.toString();
@@ -215,7 +227,14 @@ class AppState extends ChangeNotifier {
           (todayChantCounts[mantraId] ?? 0) + pendingSessionCount;
     }
 
-    if (!completedDays.contains(dateOnly)) {
+    // Only count as a completed day if target was reached
+    final bool sessionCompleted = pendingSessionMode == 'count'
+        ? pendingSessionCount >= pendingSessionTarget
+        : pendingSessionCount >= 0 && pendingSessionTarget == 0;
+    // For timer mode, completion is signalled by pendingSessionTarget == 0
+    // (set by _completeSession) vs pendingSessionTarget > 0 (set by _saveAndExit)
+
+    if (sessionCompleted && !completedDays.contains(dateOnly)) {
       completedDays.add(dateOnly);
       totalPrayerDays++;
       prayerStreak++;
@@ -283,6 +302,8 @@ class AppState extends ChangeNotifier {
     pendingSessionCount = 0;
     pendingSessionTarget = 108;
     pendingSessionMode = 'timer';
+    defaultCountTarget = 108;
+    defaultTimerMinutes = 10;
     favouriteMantraCards = [];
     errorMessage = null;
     notifyListeners();

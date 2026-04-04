@@ -70,6 +70,9 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
     super.initState();
     _initAudio();
     _loadTodayProgress();
+    final appState = context.read<AppState>();
+    _target = appState.defaultCountTarget;
+    _timerDurationSeconds = appState.defaultTimerMinutes * 60;
   }
 
   Future<void> _loadTodayProgress() async {
@@ -81,6 +84,11 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
         _todayCount = progress['count'] ?? 0;
         _todayTarget = progress['target'] ?? 108;
         _progressLoaded = true;
+        // Resume from where user left off today
+        if (_todayCount > 0) {
+          _count = _todayCount;
+          _target = _todayTarget;
+        }
       });
     }
   }
@@ -221,6 +229,11 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
     appState.pendingSessionTarget = _target;
     appState.pendingSessionMode =
         _mode == _SessionMode.count ? 'count' : 'timer';
+    // Signal genuine completion for streak logic:
+    // target = 0 means timer ran to zero naturally
+    if (_mode == _SessionMode.timer) {
+      appState.pendingSessionTarget = 0;
+    }
     _persistDuration();
   }
 

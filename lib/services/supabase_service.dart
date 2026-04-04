@@ -86,6 +86,8 @@ class SupabaseService {
     required String reminderTime,
     required String reminderPeriod,
     required List<String> selectedDays,
+    required int defaultCountTarget,
+    required int defaultTimerMinutes,
   }) async {
     final userId = currentUser?.id;
     if (userId == null) return;
@@ -96,6 +98,8 @@ class SupabaseService {
       'reminder_time': reminderTime,
       'reminder_period': reminderPeriod,
       'selected_days': selectedDays,
+      'default_count_target': defaultCountTarget,
+      'default_timer_minutes': defaultTimerMinutes,
       'updated_at': DateTime.now().toIso8601String(),
     });
   }
