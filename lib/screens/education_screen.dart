@@ -18,7 +18,6 @@ class EducationScreen extends StatelessWidget {
             borderRadius: BorderRadius.zero,
             child: Column(
               children: [
-                _buildProgressBar(),
                 Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -67,26 +66,4 @@ class EducationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-      child: Container(
-        height: 6,
-        decoration: BoxDecoration(
-          color: AppColors.border,
-          borderRadius: BorderRadius.circular(100),
-        ),
-        child: FractionallySizedBox(
-          alignment: Alignment.centerLeft,
-          widthFactor: 0.1,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.textDark,
-              borderRadius: BorderRadius.circular(100),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
