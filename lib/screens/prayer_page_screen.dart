@@ -52,6 +52,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
 
   // ── Timer mode ────────────────────────────────────────────────────────────
   int? _timerDurationSeconds;
+  int? _originalTimerTarget;
   int get _timerRemaining {
     if (_timerDurationSeconds == null) return 0;
     final r = _timerDurationSeconds! - _elapsedSeconds;
@@ -75,6 +76,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
     final appState = context.read<AppState>();
     _target = appState.defaultCountTarget;
     _timerDurationSeconds = appState.defaultTimerMinutes * 60;
+    _originalTimerTarget = appState.defaultTimerMinutes * 60;
   }
 
   Future<void> _loadTodayProgress() async {
@@ -97,12 +99,15 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
         _todayCount = count;
         _todayTarget = target;
         if (count > 0 && target > 0) {
-          // Partial — pre-set timer to the remaining duration
           final remaining = target - count;
-          if (remaining > 0) {
-            _timerDurationSeconds = remaining;
-          }
+          // _originalTimerTarget = the full chosen duration
+          _originalTimerTarget = target;
+          // _timerDurationSeconds = remaining time for countdown
+          _timerDurationSeconds = remaining > 0 ? remaining : 1;
           _mode = _SessionMode.timer;
+        } else if (count > 0 && target == 0) {
+          // Already fully completed today
+          _originalTimerTarget = count; // best estimate
         }
         // Do NOT set _count or _target for timer mode
         // so count bead view is not polluted
@@ -189,6 +194,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
       _elapsedSeconds = 0;
       // Restore default timer instead of resetting to null
       _timerDurationSeconds = appState.defaultTimerMinutes * 60;
+      _originalTimerTarget = appState.defaultTimerMinutes * 60;
     });
   }
 
@@ -428,8 +434,10 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
         // count so progress is stored and visible.
         // Target stays > 0 to signal partial (not complete).
         appState.pendingSessionCount = _elapsedSeconds;
+        // Always save the ORIGINAL chosen duration as target
+        // not the remaining time (_timerDurationSeconds)
         appState.pendingSessionTarget =
-            _timerDurationSeconds ?? (_elapsedSeconds + 1);
+            _originalTimerTarget ?? _timerDurationSeconds ?? (_elapsedSeconds + 1);
         appState.pendingSessionMode = 'timer';
       } else {
         appState.pendingSessionCount = _count;
@@ -581,7 +589,10 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
             onPressed: () {
               final v = int.tryParse(ctrl.text.trim());
               if (v != null && v > 0) {
-                setState(() => _timerDurationSeconds = v * 60);
+                setState(() {
+                    _timerDurationSeconds = v * 60;
+                    _originalTimerTarget = v * 60;
+                  });
               }
               Navigator.pop(ctx);
             },
@@ -1297,8 +1308,10 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
             ..._presetDurationMinutes.map((m) => _DurationChip(
                   label: '$m min',
                   selected: _timerDurationSeconds == m * 60,
-                  onTap: () => setState(
-                      () => _timerDurationSeconds = m * 60),
+                  onTap: () => setState(() {
+                    _timerDurationSeconds = m * 60;
+                    _originalTimerTarget = m * 60;
+                  }),
                 )),
             _DurationChip(
               label: 'Custom',
