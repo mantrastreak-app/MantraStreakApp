@@ -227,14 +227,15 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
       _showCompletion = true;
     });
     final appState = context.read<AppState>();
-    appState.pendingSessionCount = _count;
-    appState.pendingSessionTarget = _target;
-    appState.pendingSessionMode =
-        _mode == _SessionMode.count ? 'count' : 'timer';
-    // Signal genuine completion for streak logic:
-    // target = 0 means timer ran to zero naturally
     if (_mode == _SessionMode.timer) {
-      appState.pendingSessionTarget = 0;
+      // Full timer completion — elapsed = full duration
+      appState.pendingSessionCount = _elapsedSeconds;
+      appState.pendingSessionTarget = 0; // 0 = fully completed
+      appState.pendingSessionMode = 'timer';
+    } else {
+      appState.pendingSessionCount = _count;
+      appState.pendingSessionTarget = _target;
+      appState.pendingSessionMode = 'count';
     }
     _persistDuration();
   }
@@ -244,16 +245,172 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
     context.read<AppState>().selectedPrayerDuration = (secs / 60).ceil();
   }
 
+  void _onClosePressed() {
+    // If no session started, close immediately — no warning needed
+    if (_elapsedSeconds == 0 && _count == 0) {
+      widget.onClose();
+      return;
+    }
+
+    // Session is in progress — pause and show options
+    _timer?.cancel();
+    if (_isPlaying) {
+      setState(() => _isPlaying = false);
+      _pauseAudio();
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Icon
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.primarySurface,
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: AppColors.primaryBorder, width: 1.5),
+              ),
+              child: const Icon(
+                Icons.bookmark_outlined,
+                color: AppColors.primary,
+                size: 26,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Title
+            const Text(
+              'Save your progress?',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Subtitle — shows what will be saved
+            Text(
+              _mode == _SessionMode.count
+                  ? '$_count chants will be saved to your practice'
+                  : '${_fmt(_elapsedSeconds)} of chanting will be saved',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSubtle,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+
+            // Save & Exit button (primary)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100)),
+                  elevation: 0,
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _saveAndExit();
+                },
+                child: const Text(
+                  'Save & Exit',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Continue button (secondary)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textMedium,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100)),
+                  side: const BorderSide(
+                      color: AppColors.border, width: 1.5),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  // Resume the session
+                  if (!_showCompletion) {
+                    setState(() => _isPlaying = true);
+                    _playAudioIfNeeded();
+                    _startElapsedTimer();
+                  }
+                },
+                child: const Text(
+                  'Continue Chanting',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _saveAndExit() {
     _timer?.cancel();
     _pauseAudio();
     if (_elapsedSeconds > 0 || _count > 0) {
       _persistDuration();
       final appState = context.read<AppState>();
-      appState.pendingSessionCount = _count;
-      appState.pendingSessionTarget = _target;
-      appState.pendingSessionMode =
-          _mode == _SessionMode.count ? 'count' : 'timer';
+      if (_mode == _SessionMode.timer) {
+        // For timer mode, use elapsed seconds as the
+        // count so progress is stored and visible.
+        // Target stays > 0 to signal partial (not complete).
+        appState.pendingSessionCount = _elapsedSeconds;
+        appState.pendingSessionTarget =
+            _timerDurationSeconds ?? (_elapsedSeconds + 1);
+        appState.pendingSessionMode = 'timer';
+      } else {
+        appState.pendingSessionCount = _count;
+        appState.pendingSessionTarget = _target;
+        appState.pendingSessionMode = 'count';
+      }
       widget.onComplete();
     } else {
       widget.onClose();
@@ -656,7 +813,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
           ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: widget.onClose,
+            onTap: _onClosePressed,
             child: Container(
               width: 40,
               height: 40,
