@@ -750,8 +750,9 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
 
   Widget _buildProgressBanner() {
     final isTimer = _todayMode == 'timer';
-    final isCompleted =
-        isTimer ? _todayTarget == 0 : _todayCount >= _todayTarget;
+    final isCompleted = isTimer
+        ? _todayTarget == 0
+        : _todayCount >= _todayTarget;
 
     String label;
     if (isCompleted) {
@@ -759,8 +760,11 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
           ? 'Chanted today: ${_fmtSecs(_todayElapsedSeconds)} ✓'
           : 'Completed today ✓';
     } else if (isTimer) {
-      label =
-          'Today so far: ${_fmtSecs(_todayElapsedSeconds)}';
+      // Show as time not raw seconds
+      // e.g. "Today so far: 1:00 / 5:00"
+      final doneFormatted = _fmt(_todayElapsedSeconds);
+      final targetFormatted = _fmt(_todayTarget);
+      label = 'Today so far: $doneFormatted / $targetFormatted';
     } else {
       label =
           'Today so far: $_todayCount / $_todayTarget chants';
