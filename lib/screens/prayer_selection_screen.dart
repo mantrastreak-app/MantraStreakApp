@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/gradient_button.dart';
@@ -114,6 +116,7 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
   List<Prayer> _prayers = [];
   bool _loading = true;
   String? _error;
+  Map<String, Map<String, dynamic>> _todayProgress = {};
 
   @override
   void initState() {
@@ -158,16 +161,30 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
   Future<void> _load() async {
     try {
       final rows = await SupabaseService.fetchMantrasByMood(widget.mood);
+      final prayers = rows.map(Prayer.fromSupabase).toList();
       setState(() {
-        _prayers = rows.map(Prayer.fromSupabase).toList();
+        _prayers = prayers;
         _loading = false;
       });
+      _loadTodayProgress(prayers);
     } catch (e) {
       setState(() {
         _error = e.toString();
         _loading = false;
       });
     }
+  }
+
+  Future<void> _loadTodayProgress(List<Prayer> prayers) async {
+    final results = await Future.wait(
+      prayers.map((p) => SupabaseService.loadTodayProgressForMantra(p.id)),
+    );
+    if (!mounted) return;
+    final map = <String, Map<String, dynamic>>{};
+    for (var i = 0; i < prayers.length; i++) {
+      map[prayers[i].id] = results[i];
+    }
+    setState(() => _todayProgress = map);
   }
 
   @override
@@ -235,6 +252,9 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
                             ..._prayers.map((p) => _PrayerCard(
                               prayer: p,
                               isSelected: _selectedPrayer == p,
+                              todayCount: _todayProgress[p.id]?['count'] as int?,
+                              todayTarget: _todayProgress[p.id]?['target'] as int?,
+                              todayMode: _todayProgress[p.id]?['mode'] as String?,
                               onTap: () => setState(() => _selectedPrayer = p),
                             )),
                           const SizedBox(height: 24),
@@ -265,9 +285,26 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
 class _PrayerCard extends StatelessWidget {
   final Prayer prayer;
   final bool isSelected;
+  final int? todayCount;
+  final int? todayTarget;
+  final String? todayMode;
   final VoidCallback onTap;
 
-  const _PrayerCard({required this.prayer, required this.isSelected, required this.onTap});
+  const _PrayerCard({
+    required this.prayer,
+    required this.isSelected,
+    required this.onTap,
+    this.todayCount,
+    this.todayTarget,
+    this.todayMode,
+  });
+
+  static String _fmtSecs(int s) {
+    if (s < 60) return '${s}s';
+    final m = s ~/ 60;
+    final rem = s % 60;
+    return rem == 0 ? '${m}m' : '${m}m ${rem}s';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -335,6 +372,43 @@ class _PrayerCard extends StatelessWidget {
                         ? prayer.moodSpecificMeaning
                         : prayer.meaning,
                         style: AppTextStyles.labelSmall),
+                    if (todayCount != null && todayCount! > 0) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySurface,
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(color: AppColors.primaryBorder, width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              (todayTarget != null && todayCount! >= todayTarget!)
+                                  ? Icons.check_circle
+                                  : Icons.check_circle_outline,
+                              size: 11,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              (todayTarget != null && todayCount! >= todayTarget!)
+                                  ? 'Done today ✓'
+                                  : todayMode == 'timer'
+                                      ? 'Today: ${_fmtSecs(todayCount!)}'
+                                      : 'Today: $todayCount chants',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

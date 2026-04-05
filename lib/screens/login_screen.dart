@@ -36,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
   late bool _isSignUp;
   bool _isLoading = false;
   String? _errorMessage;
+  String? _infoMessage;
 
   @override
   void initState() {
@@ -61,27 +62,83 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = 'Please enter your email and password.');
+      setState(() =>
+          _errorMessage = 'Please enter your email and password.');
       return;
     }
 
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _infoMessage = null;
     });
 
     try {
       if (_isSignUp) {
-        await SupabaseService.signUpWithEmail(email, password);
-        if (mounted) widget.onPendingOtp(email);
+        final response =
+            await SupabaseService.signUpWithEmail(email, password);
+
+        // If Supabase returns a user but NO session, it means
+        // the email is already registered and confirmed.
+        // Supabase silently "succeeds" but sends nothing.
+        // Detect this and switch to sign-in instead.
+        final session = response.session;
+        final user = response.user;
+
+        // Supabase signals an already-existing confirmed account
+        // by returning a user with an EMPTY identities list.
+        // A genuine new unconfirmed user has identities populated.
+        // user != null && session == null alone is not enough —
+        // it also matches new unconfirmed signups.
+        final identities = user?.identities ?? [];
+        final isExistingAccount =
+            user != null && session == null && identities.isEmpty;
+
+        if (isExistingAccount) {
+          // Confirmed account already exists — switch to sign-in
+          if (mounted) {
+            setState(() {
+              _isSignUp = false;
+              _passwordController.clear();
+              _errorMessage = null;
+              _infoMessage =
+                  'An account with this email already exists. '
+                  'We\'ve switched to Sign In — enter your password.';
+            });
+          }
+        } else {
+          // Genuine new user (confirmed or unconfirmed) — go to OTP
+          if (mounted) widget.onPendingOtp(email);
+        }
       } else {
         await SupabaseService.signInWithEmail(email, password);
         if (mounted) await _onSignInSuccess();
       }
     } on AuthException catch (e) {
-      setState(() => _errorMessage = e.message);
+      final msg = e.message.toLowerCase();
+      final isAlreadyRegistered = _isSignUp &&
+          (msg.contains('already registered') ||
+           msg.contains('already exists') ||
+           msg.contains('email already'));
+
+      if (isAlreadyRegistered) {
+        // Switch to sign-in mode, keep email pre-filled,
+        // clear password so user types it deliberately,
+        // show a friendly non-error message in blue
+        setState(() {
+          _isSignUp = false;
+          _passwordController.clear();
+          _errorMessage = null;
+          _infoMessage =
+              'Looks like you already have an account — '
+              'we\'ve switched to Sign In.';
+        });
+      } else {
+        setState(() => _errorMessage = e.message);
+      }
     } catch (_) {
-      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+      setState(() =>
+          _errorMessage = 'Something went wrong. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -219,6 +276,32 @@ class _LoginScreenState extends State<LoginScreen> {
                                 textAlign: TextAlign.center,
                               ),
                             ],
+                            if (_infoMessage != null) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                      color: const Color(0xFFBFDBFE), width: 1),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.info_outline_rounded,
+                                        color: Color(0xFF2563EB), size: 16),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _infoMessage!,
+                                        style: AppTextStyles.labelMedium.copyWith(
+                                            color: const Color(0xFF1D4ED8)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                             if (_errorMessage != null) ...[
                               const SizedBox(height: 16),
                               Container(
@@ -253,6 +336,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onTap: () => setState(() {
                                     _isSignUp = !_isSignUp;
                                     _errorMessage = null;
+                                    _infoMessage = null;
                                   }),
                                   child: Text(
                                     _isSignUp ? 'Sign In' : 'Sign Up',

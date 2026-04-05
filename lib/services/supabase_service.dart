@@ -67,7 +67,7 @@ class SupabaseService {
   static Future<void> sendPasswordResetEmail(String email) async {
     await _client.auth.resetPasswordForEmail(
       email,
-      redirectTo: 'com.mantrastreak.app://reset-password',
+      redirectTo: 'https://mantrastreak-app-2026.web.app/#/reset-password',
     );
   }
 
@@ -86,6 +86,8 @@ class SupabaseService {
     required String reminderTime,
     required String reminderPeriod,
     required List<String> selectedDays,
+    required int defaultCountTarget,
+    required int defaultTimerMinutes,
   }) async {
     final userId = currentUser?.id;
     if (userId == null) return;
@@ -96,6 +98,8 @@ class SupabaseService {
       'reminder_time': reminderTime,
       'reminder_period': reminderPeriod,
       'selected_days': selectedDays,
+      'default_count_target': defaultCountTarget,
+      'default_timer_minutes': defaultTimerMinutes,
       'updated_at': DateTime.now().toIso8601String(),
     });
   }
@@ -160,9 +164,13 @@ class SupabaseService {
   static Future<void> logPrayerSession({
     required DateTime completedAt,
     required String prayerTitle,
+    required String mantraId,
     required String deity,
     required String mood,
     required int durationMinutes,
+    required int countAchieved,
+    required int targetCount,
+    required String sessionMode,
   }) async {
     final userId = currentUser?.id;
     if (userId == null) return;
@@ -171,10 +179,81 @@ class SupabaseService {
       'user_id': userId,
       'completed_at': completedAt.toIso8601String().substring(0, 10),
       'prayer_title': prayerTitle,
+      'mantra_id': mantraId,
       'deity': deity,
       'mood': mood,
       'duration_minutes': durationMinutes,
+      'count_achieved': countAchieved,
+      'target_count': targetCount,
+      'session_mode': sessionMode,
     });
+  }
+
+  // Fetch all of today's sessions for this user
+  // Returns a list of maps with mantra_id and count_achieved
+  static Future<List<Map<String, dynamic>>> loadTodaysSessions() async {
+    final userId = currentUser?.id;
+    if (userId == null) return [];
+    final today =
+        DateTime.now().toIso8601String().substring(0, 10);
+    final response = await _client
+        .from('prayer_sessions')
+        .select('mantra_id, count_achieved, session_mode')
+        .eq('user_id', userId)
+        .eq('completed_at', today);
+    return List<Map<String, dynamic>>.from(
+        response as List);
+  }
+
+  static Future<Map<String, dynamic>>
+      loadTodayProgressForMantra(String mantraId) async {
+    final userId = currentUser?.id;
+    if (userId == null) {
+      return {'count': 0, 'target': 108, 'mode': 'count'};
+    }
+    final today =
+        DateTime.now().toIso8601String().substring(0, 10);
+
+    // Fetch ALL sessions for this mantra today — not just latest
+    final rows = await _client
+        .from('prayer_sessions')
+        .select('count_achieved, target_count, session_mode')
+        .eq('user_id', userId)
+        .eq('mantra_id', mantraId)
+        .eq('completed_at', today)
+        .order('created_at', ascending: true);
+
+    final list =
+        List<Map<String, dynamic>>.from(rows as List);
+
+    if (list.isEmpty) {
+      return {'count': 0, 'target': 108, 'mode': 'count'};
+    }
+
+    // Sum all count_achieved values across sessions
+    int totalCount = 0;
+    for (final row in list) {
+      totalCount += (row['count_achieved'] as int? ?? 0);
+    }
+
+    // Target comes from any row — it's the same for all
+    // sessions of the same mantra (the user's chosen duration)
+    final lastRow = list.last;
+    final target =
+        lastRow['target_count'] as int? ?? 108;
+    final mode =
+        lastRow['session_mode'] as String? ?? 'count';
+
+    // Special case: if any session has target=0 it means
+    // the full session was completed today
+    final anyCompleted =
+        list.any((r) => (r['target_count'] as int? ?? 1) == 0);
+
+    return {
+      'count': totalCount,
+      'target': anyCompleted ? 0 : target,
+      'mode': mode,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -190,6 +269,16 @@ class SupabaseService {
         .eq('mood_name', moodName)
         .order('display_order');
     return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  static Future<Map<String, dynamic>?> fetchMantraById(String id) async {
+    final response = await _client
+        .from('mantras_by_mood')
+        .select()
+        .eq('mantra_id', id)
+        .limit(1);
+    final list = List<Map<String, dynamic>>.from(response as List);
+    return list.isNotEmpty ? list.first : null;
   }
 
   // ---------------------------------------------------------------------------

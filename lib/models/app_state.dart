@@ -8,6 +8,8 @@ class AppState extends ChangeNotifier {
   String reminderTime = '06:00';
   String reminderPeriod = 'AM';
   List<String> selectedDays = [];
+  int defaultCountTarget = 108;
+  int defaultTimerMinutes = 10;
 
   // Streak stats
   int prayerStreak = 0;
@@ -20,6 +22,19 @@ class AppState extends ChangeNotifier {
   String? selectedPrayer;
   String? selectedPrayerDeity;
   int? selectedPrayerDuration;
+  String? selectedPrayerMantraId;
+  int currentSessionCount = 0;
+  int currentSessionTarget = 108;
+  String currentSessionMode = 'timer';
+
+  // Pending session data — set by prayer_page_screen before calling onComplete
+  int pendingSessionCount = 0;
+  int pendingSessionTarget = 108;
+  String pendingSessionMode = 'timer';
+
+  // Today's chant progress — mantraId → count chanted today
+  Map<String, int> todayChantCounts = {};
+  Map<String, String> todaySessionModes = {};
 
   // Favourite mantras (persisted locally)
   // Each entry stores just enough data to render a compact card.
@@ -27,6 +42,10 @@ class AppState extends ChangeNotifier {
 
   bool isFavourite(String mantraId) =>
       favouriteMantraCards.any((m) => m['id'] == mantraId);
+
+  int todayCountFor(String mantraId) => todayChantCounts[mantraId] ?? 0;
+  String todayModeFor(String mantraId) =>
+      todaySessionModes[mantraId] ?? 'count';
 
   // Loading state for async operations
   bool isLoading = false;
@@ -114,6 +133,12 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setDefaultPractice(int countTarget, int timerMinutes) {
+    defaultCountTarget = countTarget;
+    defaultTimerMinutes = timerMinutes;
+    notifyListeners();
+  }
+
   // -------------------------------------------------------------------------
   // Supabase: load all user data after login
   // -------------------------------------------------------------------------
@@ -122,7 +147,7 @@ class AppState extends ChangeNotifier {
     if (!SupabaseService.isAuthenticated) return;
     _setLoading(true);
     try {
-      await Future.wait([_loadProfile(), _loadStreaks(), _loadCompletedDays(), loadFavourites()]);
+      await Future.wait([_loadProfile(), _loadStreaks(), _loadCompletedDays(), loadFavourites(), _loadTodayProgress()]);
     } catch (e) {
       errorMessage = e.toString();
     } finally {
@@ -137,6 +162,8 @@ class AppState extends ChangeNotifier {
       reminderTime = profile['reminder_time'] ?? '06:00';
       reminderPeriod = profile['reminder_period'] ?? 'AM';
       selectedDays = List<String>.from(profile['selected_days'] ?? []);
+      defaultCountTarget = profile['default_count_target'] as int? ?? 108;
+      defaultTimerMinutes = profile['default_timer_minutes'] as int? ?? 10;
     }
   }
 
@@ -153,6 +180,24 @@ class AppState extends ChangeNotifier {
     completedDays = await SupabaseService.loadCompletedDays();
   }
 
+  Future<void> _loadTodayProgress() async {
+    final sessions = await SupabaseService.loadTodaysSessions();
+    final Map<String, int> counts = {};
+    final Map<String, String> modes = {};
+    for (final session in sessions) {
+      final id = session['mantra_id'] as String? ?? '';
+      final count = session['count_achieved'] as int? ?? 0;
+      final mode = session['session_mode'] as String? ?? 'count';
+      if (id.isNotEmpty) {
+        counts[id] = (counts[id] ?? 0) + count;
+        modes[id] = mode;
+      }
+    }
+    todayChantCounts = counts;
+    todaySessionModes = modes;
+    notifyListeners();
+  }
+
   // -------------------------------------------------------------------------
   // Supabase: persist onboarding settings
   // -------------------------------------------------------------------------
@@ -165,6 +210,8 @@ class AppState extends ChangeNotifier {
         reminderTime: reminderTime,
         reminderPeriod: reminderPeriod,
         selectedDays: selectedDays,
+        defaultCountTarget: defaultCountTarget,
+        defaultTimerMinutes: defaultTimerMinutes,
       );
     } catch (e) {
       errorMessage = e.toString();
@@ -180,36 +227,59 @@ class AppState extends ChangeNotifier {
     final today = DateTime.now();
     final dateOnly = DateTime(today.year, today.month, today.day);
 
-    if (!completedDays.contains(dateOnly)) {
+    // Update in-memory today progress immediately
+    final mantraId = selectedPrayerMantraId ?? '';
+    if (mantraId.isNotEmpty && pendingSessionCount > 0) {
+      todayChantCounts[mantraId] =
+          (todayChantCounts[mantraId] ?? 0) + pendingSessionCount;
+    }
+
+    // Only count as a completed day if target was reached
+    final bool sessionCompleted = pendingSessionMode == 'count'
+        ? pendingSessionCount >= pendingSessionTarget
+        : pendingSessionCount >= 0 && pendingSessionTarget == 0;
+    // For timer mode, completion is signalled by pendingSessionTarget == 0
+    // (set by _completeSession) vs pendingSessionTarget > 0 (set by _saveAndExit)
+
+    if (sessionCompleted && !completedDays.contains(dateOnly)) {
       completedDays.add(dateOnly);
       totalPrayerDays++;
       prayerStreak++;
       if (prayerStreak > bestStreak) bestStreak = prayerStreak;
-      notifyListeners();
+    }
+    notifyListeners();
 
-      if (SupabaseService.isAuthenticated) {
-        try {
-          await Future.wait([
-            SupabaseService.logPrayerSession(
-              completedAt: dateOnly,
-              prayerTitle: selectedPrayer ?? '',
-              deity: selectedPrayerDeity ?? '',
-              mood: selectedMood ?? '',
-              durationMinutes: selectedPrayerDuration ?? 0,
-            ),
-            SupabaseService.saveStreaks(
-              currentStreak: prayerStreak,
-              bestStreak: bestStreak,
-              totalPrayerDays: totalPrayerDays,
-              lastPrayerDate: dateOnly,
-            ),
-          ]);
-        } catch (e) {
-          errorMessage = e.toString();
-          notifyListeners();
-        }
+    if (SupabaseService.isAuthenticated) {
+      try {
+        await Future.wait([
+          SupabaseService.logPrayerSession(
+            completedAt: dateOnly,
+            prayerTitle: selectedPrayer ?? '',
+            mantraId: mantraId,
+            deity: selectedPrayerDeity ?? '',
+            mood: selectedMood ?? '',
+            durationMinutes: selectedPrayerDuration ?? 0,
+            countAchieved: pendingSessionCount,
+            targetCount: pendingSessionTarget,
+            sessionMode: pendingSessionMode,
+          ),
+          SupabaseService.saveStreaks(
+            currentStreak: prayerStreak,
+            bestStreak: bestStreak,
+            totalPrayerDays: totalPrayerDays,
+            lastPrayerDate: dateOnly,
+          ),
+        ]);
+      } catch (e) {
+        errorMessage = e.toString();
+        notifyListeners();
       }
     }
+
+    // Reset pending
+    pendingSessionCount = 0;
+    pendingSessionTarget = 108;
+    pendingSessionMode = 'timer';
   }
 
   bool isDayCompleted(DateTime date) {
@@ -234,6 +304,14 @@ class AppState extends ChangeNotifier {
     selectedPrayer = null;
     selectedPrayerDeity = null;
     selectedPrayerDuration = null;
+    selectedPrayerMantraId = null;
+    todayChantCounts = {};
+    todaySessionModes = {};
+    pendingSessionCount = 0;
+    pendingSessionTarget = 108;
+    pendingSessionMode = 'timer';
+    defaultCountTarget = 108;
+    defaultTimerMinutes = 10;
     favouriteMantraCards = [];
     errorMessage = null;
     notifyListeners();

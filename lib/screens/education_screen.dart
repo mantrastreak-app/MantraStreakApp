@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_background.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/gradient_button.dart';
 
@@ -12,15 +11,14 @@ class EducationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AppBackground(
-        child: SafeArea(
-          child: Container(
-            color: AppColors.white,
-            child: ClipRRect(
-              borderRadius: BorderRadius.zero,
-              child: Column(
-                children: [
-                  Expanded(
+      body: SafeArea(
+        child: Container(
+          color: AppColors.white,
+          child: ClipRRect(
+            borderRadius: BorderRadius.zero,
+            child: Column(
+              children: [
+                Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Column(
@@ -52,20 +50,20 @@ class EducationScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                    child: GradientButton(
-                      label: 'I\'m Ready',
-                      onPressed: onContinue,
-                      showArrow: true,
-                    ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: GradientButton(
+                    label: 'I\'m Ready',
+                    onPressed: onContinue,
+                    showArrow: true,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+
 }
