@@ -85,8 +85,17 @@ class _LoginScreenState extends State<LoginScreen> {
         final session = response.session;
         final user = response.user;
 
-        if (user != null && session == null) {
-          // Account already exists — switch to sign-in
+        // Supabase signals an already-existing confirmed account
+        // by returning a user with an EMPTY identities list.
+        // A genuine new unconfirmed user has identities populated.
+        // user != null && session == null alone is not enough —
+        // it also matches new unconfirmed signups.
+        final identities = user?.identities ?? [];
+        final isExistingAccount =
+            user != null && session == null && identities.isEmpty;
+
+        if (isExistingAccount) {
+          // Confirmed account already exists — switch to sign-in
           if (mounted) {
             setState(() {
               _isSignUp = false;
@@ -98,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
             });
           }
         } else {
-          // Genuine new user — go to OTP
+          // Genuine new user (confirmed or unconfirmed) — go to OTP
           if (mounted) widget.onPendingOtp(email);
         }
       } else {
