@@ -75,8 +75,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       if (_isSignUp) {
-        await SupabaseService.signUpWithEmail(email, password);
-        if (mounted) widget.onPendingOtp(email);
+        final response =
+            await SupabaseService.signUpWithEmail(email, password);
+
+        // If Supabase returns a user but NO session, it means
+        // the email is already registered and confirmed.
+        // Supabase silently "succeeds" but sends nothing.
+        // Detect this and switch to sign-in instead.
+        final session = response.session;
+        final user = response.user;
+
+        if (user != null && session == null) {
+          // Account already exists — switch to sign-in
+          if (mounted) {
+            setState(() {
+              _isSignUp = false;
+              _passwordController.clear();
+              _errorMessage = null;
+              _infoMessage =
+                  'An account with this email already exists. '
+                  'We\'ve switched to Sign In — enter your password.';
+            });
+          }
+        } else {
+          // Genuine new user — go to OTP
+          if (mounted) widget.onPendingOtp(email);
+        }
       } else {
         await SupabaseService.signInWithEmail(email, password);
         if (mounted) await _onSignInSuccess();

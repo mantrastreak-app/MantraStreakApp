@@ -213,22 +213,46 @@ class SupabaseService {
     }
     final today =
         DateTime.now().toIso8601String().substring(0, 10);
-    final response = await _client
+
+    // Fetch ALL sessions for this mantra today — not just latest
+    final rows = await _client
         .from('prayer_sessions')
         .select('count_achieved, target_count, session_mode')
         .eq('user_id', userId)
         .eq('mantra_id', mantraId)
         .eq('completed_at', today)
-        .order('created_at', ascending: false)
-        .limit(1)
-        .maybeSingle();
-    if (response == null) {
+        .order('created_at', ascending: true);
+
+    final list =
+        List<Map<String, dynamic>>.from(rows as List);
+
+    if (list.isEmpty) {
       return {'count': 0, 'target': 108, 'mode': 'count'};
     }
+
+    // Sum all count_achieved values across sessions
+    int totalCount = 0;
+    for (final row in list) {
+      totalCount += (row['count_achieved'] as int? ?? 0);
+    }
+
+    // Target comes from any row — it's the same for all
+    // sessions of the same mantra (the user's chosen duration)
+    final lastRow = list.last;
+    final target =
+        lastRow['target_count'] as int? ?? 108;
+    final mode =
+        lastRow['session_mode'] as String? ?? 'count';
+
+    // Special case: if any session has target=0 it means
+    // the full session was completed today
+    final anyCompleted =
+        list.any((r) => (r['target_count'] as int? ?? 1) == 0);
+
     return {
-      'count': response['count_achieved'] as int? ?? 0,
-      'target': response['target_count'] as int? ?? 108,
-      'mode': response['session_mode'] as String? ?? 'count',
+      'count': totalCount,
+      'target': anyCompleted ? 0 : target,
+      'mode': mode,
     };
   }
 
