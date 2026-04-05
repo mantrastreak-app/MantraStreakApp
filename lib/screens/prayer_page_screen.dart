@@ -34,6 +34,8 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
   // ── Today's progress ──────────────────────────────────────────────────────
   int _todayCount = 0;
   int _todayTarget = 108;
+  int _todayElapsedSeconds = 0;
+  String _todayMode = 'count';
   bool _progressLoaded = false;
 
   // ── Shared session state ──────────────────────────────────────────────────
@@ -76,21 +78,47 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
   }
 
   Future<void> _loadTodayProgress() async {
-    final progress = await SupabaseService.loadTodayProgressForMantra(
+    final progress =
+        await SupabaseService.loadTodayProgressForMantra(
       widget.prayer.id,
     );
-    if (mounted) {
-      setState(() {
-        _todayCount = progress['count'] ?? 0;
-        _todayTarget = progress['target'] ?? 108;
-        _progressLoaded = true;
-        // Resume from where user left off today
-        if (_todayCount > 0) {
-          _count = _todayCount;
-          _target = _todayTarget;
+    if (!mounted) return;
+    setState(() {
+      final mode = progress['mode'] as String? ?? 'count';
+      final count = progress['count'] as int? ?? 0;
+      final target = progress['target'] as int? ?? 108;
+      _todayMode = mode;
+      _progressLoaded = true;
+
+      if (mode == 'timer') {
+        // count_achieved holds elapsed seconds for timer mode
+        _todayElapsedSeconds = count;
+        _todayCount = count;   // used for progress banner
+        _todayTarget = target; // 0 = completed, >0 = partial
+
+        if (count > 0 && target > 0) {
+          // Partial timer session — resume from where left off
+          // Set the timer duration to the original target
+          // and pre-fill elapsed so remaining time is correct
+          _timerDurationSeconds = target;
+          // Switch to timer mode automatically
+          _mode = _SessionMode.timer;
+          // We do NOT set _elapsedSeconds here — user
+          // will start fresh but can see what they did today
+        } else if (count > 0 && target == 0) {
+          // Timer was fully completed today
+          _todayElapsedSeconds = count;
         }
-      });
-    }
+      } else {
+        // Count mode — resume bead count
+        _todayCount = count;
+        _todayTarget = target;
+        if (count > 0) {
+          _count = count;
+          _target = target;
+        }
+      }
+    });
   }
 
   @override
@@ -705,20 +733,47 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
     );
   }
 
+  String _fmtSeconds(int s) {
+    if (s < 60) return '${s}s';
+    final m = s ~/ 60;
+    final rem = s % 60;
+    return rem == 0 ? '${m}m' : '${m}m ${rem}s';
+  }
+
   Widget _buildProgressBanner() {
+    final isTimer = _todayMode == 'timer';
+    final isCompleted = isTimer
+        ? _todayTarget == 0
+        : _todayCount >= _todayTarget;
+
+    String label;
+    if (isCompleted) {
+      label = isTimer
+          ? 'Chanted today: ${_fmtSeconds(_todayElapsedSeconds)} ✓'
+          : 'Completed today ✓';
+    } else if (isTimer) {
+      label =
+          'Today so far: ${_fmtSeconds(_todayElapsedSeconds)}';
+    } else {
+      label =
+          'Today so far: $_todayCount / $_todayTarget chants';
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: AppColors.primarySurface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primaryBorder, width: 1),
+        border:
+            Border.all(color: AppColors.primaryBorder, width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            _todayCount >= _todayTarget
+            isCompleted
                 ? Icons.check_circle_rounded
                 : Icons.check_circle_outline_rounded,
             size: 14,
@@ -726,9 +781,7 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
           ),
           const SizedBox(width: 6),
           Text(
-            _todayCount >= _todayTarget
-                ? 'Completed today ✓'
-                : 'Today so far: $_todayCount / $_todayTarget',
+            label,
             style: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 12,
@@ -1098,9 +1151,10 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
   // ── Timer mode UI ─────────────────────────────────────────────────────────
 
   Widget _buildTimerControls() {
-    // Once started (or paused mid-session), show countdown
+    // Active session — show countdown
     if (_sessionStarted ||
-        (_timerDurationSeconds != null && _elapsedSeconds > 0)) {
+        (_timerDurationSeconds != null &&
+            _elapsedSeconds > 0)) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1127,7 +1181,120 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
       );
     }
 
-    // Pre-start: duration selector
+    // Prior timer session today — show resume prompt
+    if (_todayMode == 'timer' &&
+        _todayElapsedSeconds > 0 &&
+        _todayTarget > 0 &&
+        _timerDurationSeconds != null) {
+      final remaining =
+          _timerDurationSeconds! - _todayElapsedSeconds;
+      final remainingFmt =
+          remaining > 0 ? _fmt(remaining) : '0:00';
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primarySurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                  color: AppColors.primaryBorder, width: 1.5),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  remainingFmt,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 44,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                    letterSpacing: -1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'remaining from your earlier session today',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSubtle),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Chanted: ${_fmtSeconds(_todayElapsedSeconds)}',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSubtle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Resume button (primary)
+          GestureDetector(
+            onTap: () {
+              // Start fresh but from remaining time
+              setState(() {
+                _timerDurationSeconds = remaining > 0
+                    ? remaining
+                    : _timerDurationSeconds;
+              });
+              _startSession();
+            },
+            child: Container(
+              width: double.infinity,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: AppGradients.primaryButton,
+                borderRadius: BorderRadius.circular(100),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Color(0x30FF6900),
+                      blurRadius: 16,
+                      offset: Offset(0, 6))
+                ],
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.play_arrow_rounded,
+                      color: Colors.white, size: 24),
+                  SizedBox(width: 8),
+                  Text('Resume Chanting',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      )),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Start fresh option
+          GestureDetector(
+            onTap: () => setState(() {
+              _todayMode = 'count';
+              _todayElapsedSeconds = 0;
+            }),
+            child: Text(
+              'Start fresh instead',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Default pre-start — duration selector
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1143,8 +1310,8 @@ class _PrayerPageScreenState extends State<PrayerPageScreen> {
             ..._presetDurationMinutes.map((m) => _DurationChip(
                   label: '$m min',
                   selected: _timerDurationSeconds == m * 60,
-                  onTap: () =>
-                      setState(() => _timerDurationSeconds = m * 60),
+                  onTap: () => setState(
+                      () => _timerDurationSeconds = m * 60),
                 )),
             _DurationChip(
               label: 'Custom',

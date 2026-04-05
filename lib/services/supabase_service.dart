@@ -194,33 +194,41 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>> loadTodaysSessions() async {
     final userId = currentUser?.id;
     if (userId == null) return [];
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final today =
+        DateTime.now().toIso8601String().substring(0, 10);
     final response = await _client
         .from('prayer_sessions')
-        .select('mantra_id, count_achieved')
+        .select('mantra_id, count_achieved, session_mode')
         .eq('user_id', userId)
         .eq('completed_at', today);
-    return List<Map<String, dynamic>>.from(response as List);
+    return List<Map<String, dynamic>>.from(
+        response as List);
   }
 
-  static Future<Map<String, int>> loadTodayProgressForMantra(
-      String mantraId) async {
+  static Future<Map<String, dynamic>>
+      loadTodayProgressForMantra(String mantraId) async {
     final userId = currentUser?.id;
-    if (userId == null) return {'count': 0, 'target': 108};
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    if (userId == null) {
+      return {'count': 0, 'target': 108, 'mode': 'count'};
+    }
+    final today =
+        DateTime.now().toIso8601String().substring(0, 10);
     final response = await _client
         .from('prayer_sessions')
-        .select('count_achieved, target_count')
+        .select('count_achieved, target_count, session_mode')
         .eq('user_id', userId)
         .eq('mantra_id', mantraId)
         .eq('completed_at', today)
         .order('created_at', ascending: false)
         .limit(1)
         .maybeSingle();
-    if (response == null) return {'count': 0, 'target': 108};
+    if (response == null) {
+      return {'count': 0, 'target': 108, 'mode': 'count'};
+    }
     return {
       'count': response['count_achieved'] as int? ?? 0,
       'target': response['target_count'] as int? ?? 108,
+      'mode': response['session_mode'] as String? ?? 'count',
     };
   }
 

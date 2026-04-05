@@ -34,6 +34,7 @@ class AppState extends ChangeNotifier {
 
   // Today's chant progress — mantraId → count chanted today
   Map<String, int> todayChantCounts = {};
+  Map<String, String> todaySessionModes = {};
 
   // Favourite mantras (persisted locally)
   // Each entry stores just enough data to render a compact card.
@@ -43,6 +44,8 @@ class AppState extends ChangeNotifier {
       favouriteMantraCards.any((m) => m['id'] == mantraId);
 
   int todayCountFor(String mantraId) => todayChantCounts[mantraId] ?? 0;
+  String todayModeFor(String mantraId) =>
+      todaySessionModes[mantraId] ?? 'count';
 
   // Loading state for async operations
   bool isLoading = false;
@@ -180,14 +183,18 @@ class AppState extends ChangeNotifier {
   Future<void> _loadTodayProgress() async {
     final sessions = await SupabaseService.loadTodaysSessions();
     final Map<String, int> counts = {};
+    final Map<String, String> modes = {};
     for (final session in sessions) {
       final id = session['mantra_id'] as String? ?? '';
       final count = session['count_achieved'] as int? ?? 0;
+      final mode = session['session_mode'] as String? ?? 'count';
       if (id.isNotEmpty) {
         counts[id] = (counts[id] ?? 0) + count;
+        modes[id] = mode;
       }
     }
     todayChantCounts = counts;
+    todaySessionModes = modes;
     notifyListeners();
   }
 
@@ -299,6 +306,7 @@ class AppState extends ChangeNotifier {
     selectedPrayerDuration = null;
     selectedPrayerMantraId = null;
     todayChantCounts = {};
+    todaySessionModes = {};
     pendingSessionCount = 0;
     pendingSessionTarget = 108;
     pendingSessionMode = 'timer';

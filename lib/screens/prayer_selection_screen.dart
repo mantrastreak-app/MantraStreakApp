@@ -116,7 +116,7 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
   List<Prayer> _prayers = [];
   bool _loading = true;
   String? _error;
-  Map<String, Map<String, int>> _todayProgress = {};
+  Map<String, Map<String, dynamic>> _todayProgress = {};
 
   @override
   void initState() {
@@ -180,7 +180,7 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
       prayers.map((p) => SupabaseService.loadTodayProgressForMantra(p.id)),
     );
     if (!mounted) return;
-    final map = <String, Map<String, int>>{};
+    final map = <String, Map<String, dynamic>>{};
     for (var i = 0; i < prayers.length; i++) {
       map[prayers[i].id] = results[i];
     }
@@ -252,8 +252,9 @@ class _PrayerSelectionScreenState extends State<PrayerSelectionScreen> {
                             ..._prayers.map((p) => _PrayerCard(
                               prayer: p,
                               isSelected: _selectedPrayer == p,
-                              todayCount: _todayProgress[p.id]?['count'],
-                              todayTarget: _todayProgress[p.id]?['target'],
+                              todayCount: _todayProgress[p.id]?['count'] as int?,
+                              todayTarget: _todayProgress[p.id]?['target'] as int?,
+                              todayMode: _todayProgress[p.id]?['mode'] as String?,
                               onTap: () => setState(() => _selectedPrayer = p),
                             )),
                           const SizedBox(height: 24),
@@ -286,6 +287,7 @@ class _PrayerCard extends StatelessWidget {
   final bool isSelected;
   final int? todayCount;
   final int? todayTarget;
+  final String? todayMode;
   final VoidCallback onTap;
 
   const _PrayerCard({
@@ -294,7 +296,15 @@ class _PrayerCard extends StatelessWidget {
     required this.onTap,
     this.todayCount,
     this.todayTarget,
+    this.todayMode,
   });
+
+  static String _fmtSecs(int s) {
+    if (s < 60) return '${s}s';
+    final m = s ~/ 60;
+    final rem = s % 60;
+    return rem == 0 ? '${m}m' : '${m}m ${rem}s';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -384,8 +394,10 @@ class _PrayerCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Text(
                               (todayTarget != null && todayCount! >= todayTarget!)
-                                  ? 'Done today'
-                                  : 'Today: $todayCount',
+                                  ? 'Done today ✓'
+                                  : todayMode == 'timer'
+                                      ? 'Today: ${_fmtSecs(todayCount!)}'
+                                      : 'Today: $todayCount chants',
                               style: const TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 11,
